@@ -1,7 +1,11 @@
 'use client';
 import { useState } from "react";
+import { registerUser } from "../services/auth";
 
-// Component: Register
+// To display error messages
+const FieldError = ({ message }: { message?: string }) =>
+  message ? <p style={{ color: 'red' }}>{message}</p> : null;
+
 type FormData = {
   username: string;
   email: string;
@@ -25,77 +29,121 @@ export default function RegisterForm() {
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
-    setFormData(prevState => ({
-      ...prevState,
-      [name]: value
-    }));
-
-    // clear error for that field as user types
-    setErrors(prevErrors => ({
-      ...prevErrors,
-      [name]: ''
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setIsSuccess(false);
 
+    // Validation
     const { username, email, password1, password2 } = formData;
     const newErrors: FormErrors = {};
 
-    //validation rules
     if (!username.trim()) newErrors.username = 'Username is required';
-    if (!email.trim()) newErrors.email = 'Email is required'
-    if (!password1) newErrors.password1 = 'Password is required'
-    if (!password2) newErrors.password2 = 'Confirm your password'
-    else if (password1 != password2) newErrors.password2 = 'Passwords do not match'
+    if (!email.trim()) newErrors.email = 'Email is required';
+    if (!password1) newErrors.password1 = 'Password is required';
+    if (!password2) newErrors.password2 = 'Confirm your password';
+    else if (password1 !== password2) newErrors.password2 = 'Passwords do not match';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setIsSubmitting(false);
       return;
     }
 
-    setErrors({});
-
-
-
-    console.log('Form submitted:', formData)
-
-    // if (!formData.username || !formData.email || !formData.password1 || !formData.password2) {
-    //   alert('Fields are required!')
-    // }
+    try {
+      await registerUser(formData);
+      setIsSuccess(true);
+      // Optionally reset form here
+      setFormData({ username: '', email: '', password1: '', password2: '' });
+    } catch (error) {
+      if (error instanceof Error) {
+        setSubmitError(error.message);
+      } else {
+        setSubmitError('An unknown error occurred');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit}>
-      <div>
-        <label htmlFor="username">username</label>
-        <input name="username" value={formData.username} onChange={handleChange} type="text" id="username" />
-        {errors.username && <p style={{ color: 'red' }}>{errors.username}</p>}
-      </div>
+      {isSuccess ? (
+        <div style={{ color: 'green' }}>
+          Registration successful! Please check your email to verify your account.
+        </div>
+      ) : (
+        <>
+          <div>
+            <label htmlFor="username">Username</label>
+            <input
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              type="text"
+              id="username"
+            />
+            <FieldError message={errors.username} />
 
-      <div>
-        <label htmlFor="email">Email</label>
-        <input name="email" value={formData.email} onChange={handleChange} type="email" id="email" />
-        {errors.email && <p style={{ color: 'red' }}>{errors.email}</p>}
-      </div>
+          </div>
 
-      <div>
-        <label htmlFor="password1">Password</label>
-        <input name="password1" value={formData.password1} onChange={handleChange} type="password" id="password1" />
-        {errors.password1 && <p style={{ color: 'red' }}>{errors.password1}</p>}
-      </div>
+          <div>
+            <label htmlFor="email">Email</label>
+            <input
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              type="email"
+              id="email"
+            />
 
-      <div>
-        <label htmlFor="password2">Confirm password</label>
-        <input name="password2" value={formData.password2} onChange={handleChange} type="password" id="password2" />
-        {errors.password2 && <p style={{ color: 'red' }}>{errors.password2}</p>}
-      </div>
+            <FieldError message={errors.email} />
+          </div>
 
-      <button type="submit">Register</button>
+          <div>
+            <label htmlFor="password1">Password</label>
+            <input
+              name="password1"
+              value={formData.password1}
+              onChange={handleChange}
+              type="password"
+              id="password1"
+            />
+
+            <FieldError message={errors.password1} />
+          </div>
+
+          <div>
+            <label htmlFor="password2">Confirm password</label>
+            <input
+              name="password2"
+              value={formData.password2}
+              onChange={handleChange}
+              type="password"
+              id="password2"
+            />
+
+            <FieldError message={errors.password2} />
+          </div>
+
+          {submitError && <p style={{ color: 'red' }}>{submitError}</p>}
+
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Registering...' : 'Register'}
+          </button>
+        </>
+      )}
     </form>
   );
 }
