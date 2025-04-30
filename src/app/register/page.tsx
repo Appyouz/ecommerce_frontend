@@ -1,5 +1,6 @@
-import RegisterForm from '@/components/RegisterForm';
+import RegisterForm from '@/app/ui/register-form';
 
+// Register route
 export default function RegisterPage() {
   return (
     <div><h1>Create an account</h1>
