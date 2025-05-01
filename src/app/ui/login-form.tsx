@@ -1,47 +1,73 @@
 'use client'
 import { useState } from "react"
 import { login } from "../services/auth";
-// import { useRouter } from "next/router";
+import { useRouter } from "next/navigation"; // For redirection (currently commented out)
 
-// To display error messages
+// Simple component to display field-specific error messages
 const FieldError = ({ message }: { message?: string }) =>
   message ? <p style={{ color: 'red' }}>{message}</p> : null;
 
+// Type definition for form data structure
 type FormData = {
   username: string;
   password: string;
 }
 
+// Type definition for validation/submission errors structure
 type FormErrors = {
   username?: string;
   password?: string;
   general?: string;
-
 }
 
+// Type definition for expected successful login API response
+type LoginSuccessResponse = {
+  access: string;
+  refresh: string;
+  user: { // User data added by custom backend view
+    id: number;
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+  }
+}
+
+
 export default function LoginForm() {
+  // State for form input values
   const [formData, setFormData] = useState<FormData>({
     username: '',
     password: '',
   });
 
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false)
-  // const router = useRouter();
+  // State for validation and submission errors
+  const [errors, setErrors] = useState<FormErrors>({});
 
+  // State for loading/submitting status
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State for logged-in user data (null initially, populated on success)
+  const [loggedInUser, setLoggedInUser] = useState<LoginSuccessResponse['user'] | null>(null);
+
+  const router = useRouter(); // Initialize router
+
+
+  // Handle input changes and update state
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: '' }))
+    setErrors(prev => ({ ...prev, [name]: '' })); // Clear specific error on change
   }
 
+  // Handle form submission
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setIsSuccess(false)
+    e.preventDefault(); // Prevent default browser form submission (page reload)
+    setIsSubmitting(true); // Set submitting state
+    setLoggedInUser(null); // Clear previous user data
+    setErrors({}); // Clear all previous errors
 
-    // validation
+    // Client-side validation
     const { username, password } = formData;
     const newErrors: FormErrors = {};
 
@@ -51,68 +77,91 @@ export default function LoginForm() {
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setIsSubmitting(false);
-      return;
+      return; // Stop if validation fails
     }
 
     try {
-      const response = await login(username, password);
-      setIsSuccess(true);
-      console.log('Login Successful', response);
+      // Call backend login service (expects LoginSuccessResponse shape)
+      const response = await login(username, password) as LoginSuccessResponse;
 
-      // Redirect or handle sucessful login
-      // router.push('./dashbaord')
+      // Access data from successful response
+      const accessToken = response.access;
+      const refreshToken = response.refresh; // Corrected typo
+      const user = response.user;
+
+      console.log('Login Successful!', user);
+      console.log('Access Token (likely also in HttpOnly cookie):', accessToken); // Token received in body
+      console.log('Refresh Token (likely also in HttpOnly cookie):', refreshToken); // Token received in body
+
+      localStorage.setItem('userUsername', user.username);
+
+      // Store user data in state to display welcome message
+      setLoggedInUser(user);
+
+      // Optional: Redirect to dashboard after a delay or automatically
+      // router.push('/dashboard');
+
     } catch (error) {
       console.error('Login error:', error);
+      // Set general error message from caught error
       setErrors({
         general: error instanceof Error ? error.message : 'Login failed'
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Always stop submitting state
     }
   }
 
+  // Render the form or welcome message
   return (
-    <form onSubmit={handleSubmit}>
-      {isSuccess ? (
+    <form onSubmit={handleSubmit}> {/* Form wrapper */}
+      {/* Display general error message */}
+      {errors.general && (
+        <div style={{ color: 'red', marginBottom: '1rem' }}>
+          {errors.general}
+        </div>
+      )}
+
+      {/* Conditional rendering: Show welcome message if loggedInUser state is truthy */}
+      {loggedInUser ? (
+        // Show welcome message
         <div style={{ color: 'green' }}>
-          Login successful! Welcome to your account.
+          Login successful! Welcome, {loggedInUser.username}!
         </div>
       ) : (
+        // Show login form elements if no user is logged in yet (in state)
         <>
           <div>
             <label htmlFor="username">Username</label>
             <input
+              id="username" // For accessibility
               name="username"
               value={formData.username}
               onChange={handleChange}
               type="text"
-              disabled={isSubmitting}
+              disabled={isSubmitting} // Disable while submitting
             />
-            <FieldError message={errors.username} />
+            <FieldError message={errors.username} /> {/* Field-specific error */}
           </div>
 
           <div>
             <label htmlFor="password">Password</label>
             <input
+              id="password" // For accessibility
               name="password"
               value={formData.password}
               onChange={handleChange}
               type="password"
-              disabled={isSubmitting}
+              disabled={isSubmitting} // Disable while submitting
             />
-            <FieldError message={errors.password} />
+            <FieldError message={errors.password} /> {/* Field-specific error */}
           </div>
 
-          {errors.general && (
-            <div style={{ color: 'red', marginBottom: '1rem' }}>
-              {errors.general}
-            </div>
-          )}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting} // Disable while submitting
           >
-            {isSubmitting ? 'Logging in...' : 'Login'}
+            {isSubmitting ? 'Logging in...' : 'Login'} {/* Change text based on status */}
           </button>
         </>
       )}
