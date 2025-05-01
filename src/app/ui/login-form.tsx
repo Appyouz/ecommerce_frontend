@@ -1,26 +1,23 @@
 'use client'
 import { useState } from "react"
-import { login } from "../services/auth";
+import { login, fetchHomeData } from "../services/auth";
 import { useRouter } from "next/navigation"; // For redirection (currently commented out)
 
 // Simple component to display field-specific error messages
 const FieldError = ({ message }: { message?: string }) =>
   message ? <p style={{ color: 'red' }}>{message}</p> : null;
 
-// Type definition for form data structure
 type FormData = {
   username: string;
   password: string;
 }
 
-// Type definition for validation/submission errors structure
 type FormErrors = {
   username?: string;
   password?: string;
   general?: string;
 }
 
-// Type definition for expected successful login API response
 type LoginSuccessResponse = {
   access: string;
   refresh: string;
@@ -35,7 +32,6 @@ type LoginSuccessResponse = {
 
 
 export default function LoginForm() {
-  // State for form input values
   const [formData, setFormData] = useState<FormData>({
     username: '',
     password: '',
@@ -112,6 +108,22 @@ export default function LoginForm() {
     }
   }
 
+
+  const [homeDataMessage, setHomeDataMessage] = useState<string | null>(null);
+  //  Function to handle clicking the test button 
+  async function handleFetchHomeClick() {
+    setHomeDataMessage('Fetching Home data...'); // Indicate fetching state
+    try {
+      const data = await fetchHomeData();
+      setHomeDataMessage(`Home data: ${data.message}`); // Display the success message from backend
+      console.log("Successfully fetched Home data:", data); // Log success
+    } catch (error) {
+      setHomeDataMessage(`Failed to fetch Home data: ${error.message}`); // Display error message
+      console.error("Error fetching Home data:", error); // Log error
+    }
+  }
+
+
   // Render the form or welcome message
   return (
     <form onSubmit={handleSubmit}> {/* Form wrapper */}
@@ -127,6 +139,15 @@ export default function LoginForm() {
         // Show welcome message
         <div style={{ color: 'green' }}>
           Login successful! Welcome, {loggedInUser.username}!
+
+          <button type="button" onClick={handleFetchHomeClick} style={{ marginLeft: '10px' }}>
+            Test Fetch Home Data
+          </button>
+
+          {/* Display the result of the Home data fetch */}
+          {homeDataMessage && (
+            <p>{homeDataMessage}</p>
+          )}
         </div>
       ) : (
         // Show login form elements if no user is logged in yet (in state)

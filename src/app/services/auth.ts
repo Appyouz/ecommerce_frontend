@@ -84,3 +84,41 @@ export const login = async (username: string, password: string) => {
     );
   }
 };
+
+export const fetchHomeData = async () => {
+  const endpoint = `${API_URL}/`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    // Check if response is JSON before parsing
+    const contentType = response.headers.get("content-type");
+    const responseData = contentType?.includes("application/json")
+      ? await response.json()
+      : await response.text();
+
+    if (!response.ok) {
+      // If authentication fails (e.g., 401 status), throw an error
+      const errorMessage =
+        responseData?.detail ||
+        responseData?.message ||
+        "Failed to fetch home data";
+      throw new Error(errorMessage);
+    }
+
+    return responseData; // { message: "Hello world" } on success
+  } catch (error) {
+    console.error("Error fetching home data:", error);
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Network error fetching home data",
+    );
+  }
+};
