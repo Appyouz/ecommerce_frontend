@@ -166,3 +166,53 @@ function getCookie(name: string): string | null {
   }
   return null;
 }
+
+type AuthenticatedUserResponse = {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+};
+
+export const fetchAuthenticatedUser =
+  async (): Promise<AuthenticatedUserResponse | null> => {
+    const endpoint = `${API_URL}/dj-rest-auth/user/`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (response.status === 401) {
+        console.log("User is not authenticated (401 response)");
+        return null;
+      }
+
+      if (!response.ok) {
+        // Handle other non-2xx errors (e.g., 403 Forbidden, 500 Internal Server Error)
+        const errorData = await response.json().catch(() => null);
+        const errorMessage =
+          errorData?.detail ||
+          errorData?.message ||
+          `Failed to fetch user data (Status: ${response.status})`;
+        console.error("Error fetching authenticated user:", errorMessage);
+        throw new Error(errorMessage); // Throw error for unexpected failures
+      }
+
+      // If response is OK (2xx) and not 401, parse and return user data
+      const userData: AuthenticatedUserResponse = await response.json();
+      console.log("User is authenticated:", userData);
+      return userData; // Return user data
+    } catch (error) {
+      console.error(
+        "Network or unexpected error fetching authenticated user:",
+        error,
+      );
+      return null;
+    }
+  };

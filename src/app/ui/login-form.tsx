@@ -1,9 +1,8 @@
 'use client'
-import { useState } from "react"
-import { login, fetchHomeData, logoutUser } from "../services/auth";
-import { useRouter } from "next/navigation"; // For redirection (currently commented out)
+import { useState, useEffect } from "react"
+import { login, fetchHomeData, logoutUser, fetchAuthenticatedUser } from "../services/auth";
+import { useRouter } from "next/navigation";
 
-// Simple component to display field-specific error messages
 const FieldError = ({ message }: { message?: string }) =>
   message ? <p style={{ color: 'red' }}>{message}</p> : null;
 
@@ -21,7 +20,7 @@ type FormErrors = {
 type LoginSuccessResponse = {
   access: string;
   refresh: string;
-  user: { // User data added by custom backend view
+  user: {
     id: number;
     username: string;
     email: string;
@@ -30,6 +29,7 @@ type LoginSuccessResponse = {
   }
 }
 
+type AuthenticatedUserResponse = LoginSuccessResponse['user'];
 
 export default function LoginForm() {
   const [formData, setFormData] = useState<FormData>({
@@ -37,33 +37,22 @@ export default function LoginForm() {
     password: '',
   });
 
-  // State for validation and submission errors
   const [errors, setErrors] = useState<FormErrors>({});
-
-  // State for loading/submitting status
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const router = useRouter();
 
-  // State for logged-in user data (null initially, populated on success)
-  const [loggedInUser, setLoggedInUser] = useState<LoginSuccessResponse['user'] | null>(null);
-
-  const router = useRouter(); // Initialize router
-
-
-  // Handle input changes and update state
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: '' })); // Clear specific error on change
+    setErrors(prev => ({ ...prev, [name]: '' }));
   }
 
-  // Handle form submission
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); // Prevent default browser form submission (page reload)
-    setIsSubmitting(true); // Set submitting state
-    setLoggedInUser(null); // Clear previous user data
-    setErrors({}); // Clear all previous errors
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrors({});
 
-    // Client-side validation
     const { username, password } = formData;
     const newErrors: FormErrors = {};
 
@@ -73,152 +62,103 @@ export default function LoginForm() {
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setIsSubmitting(false);
-      return; // Stop if validation fails
+      return;
     }
 
     try {
-      // Call backend login service (expects LoginSuccessResponse shape)
       const response = await login(username, password) as LoginSuccessResponse;
-
-      // Access data from successful response
       const accessToken = response.access;
-      const refreshToken = response.refresh; // Corrected typo
+      const refreshToken = response.refresh;
       const user = response.user;
 
       console.log('Login Successful!', user);
-      console.log('Access Token (likely also in HttpOnly cookie):', accessToken); // Token received in body
-      console.log('Refresh Token (likely also in HttpOnly cookie):', refreshToken); // Token received in body
+      console.log('Access Token (likely also in HttpOnly cookie):', accessToken);
+      console.log('Refresh Token (likely also in HttpOnly cookie):', refreshToken);
 
       localStorage.setItem('userUsername', user.username);
-
-      // Store user data in state to display welcome message
-      setLoggedInUser(user);
-
-      // Optional: Redirect to dashboard after a delay or automatically
-      // router.push('/dashboard');
+      setCheckingAuth(false);
+      router.push('/dashboard');
 
     } catch (error) {
       console.error('Login error:', error);
-      // Set general error message from caught error
       setErrors({
         general: error instanceof Error ? error.message : 'Login failed'
       });
+      setCheckingAuth(false);
     } finally {
-      setIsSubmitting(false); // Always stop submitting state
-    }
-  }
-
-
-  const [homeDataMessage, setHomeDataMessage] = useState<string | null>(null);
-  //  Function to handle clicking the test button 
-  async function handleFetchHomeClick() {
-    setHomeDataMessage('Fetching Home data...'); // Indicate fetching state
-    try {
-      const data = await fetchHomeData();
-      setHomeDataMessage(`Home data: ${data.message}`); // Display the success message from backend
-      console.log("Successfully fetched Home data:", data); // Log success
-    } catch (error) {
-      setHomeDataMessage(`Failed to fetch Home data: ${error.message}`); // Display error message
-      console.error("Error fetching Home data:", error); // Log error
-    }
-  }
-
-
-  // logout
-  async function handleLogout() {
-    try {
-      await logoutUser(); // Call the backend logout service
-
-      // --- Frontend Cleanup After Successful Backend Logout ---
-      setLoggedInUser(null); // Clear the logged-in user state
-      localStorage.removeItem('userUsername'); // Remove username from localStorage
-
-      console.log("Frontend state cleared, redirecting to login.");
-
-      // Redirect the user back to the login page
-      router.push('/login'); // Or '/' if your login is at the root
-
-
-    } catch (error) {
-      console.error("Error during frontend logout process:", error);
-      // Optionally display an error message to the user
-      // setErrors({ general: error.message || 'Failed to log out' });
-      // Even if backend logout fails, we might want to clear frontend state
-      // depending on desired behavior, but handleLogout should ideally only
-      // be called after a successful backend response.
+      setIsSubmitting(false);
     }
   }
 
 
 
+  useEffect(() => {
+    async function checkAuthAndRedirect() {
+      setCheckingAuth(true);
+      const user = await fetchAuthenticatedUser();
 
-  // Render the form or welcome message
+      if (user) {
+        console.log("User authenticated on /login page load, redirecting...");
+        router.push('/dashboard');
+      } else {
+        console.log("User not authenticated on /login page load, staying on login page.");
+      }
+
+      setCheckingAuth(false);
+    }
+
+    checkAuthAndRedirect();
+  }, [router]);
+
   return (
     <form onSubmit={handleSubmit}> {/* Form wrapper */}
-      {/* Display general error message */}
-      {errors.general && (
+      {/* Display general error message (only when not checking auth) */}
+      {errors.general && !checkingAuth && (
         <div style={{ color: 'red', marginBottom: '1rem' }}>
           {errors.general}
         </div>
       )}
 
-      {/* Conditional rendering: Show welcome message if loggedInUser state is truthy */}
-      {loggedInUser ? (
-        // Show welcome message
-        <div style={{ color: 'green' }}>
-          Login successful! Welcome, {loggedInUser.username}!
-
-          <button type="button" onClick={handleFetchHomeClick} style={{ marginLeft: '10px' }}>
-            Test Fetch Home Data
-          </button>
-
-          {/* Display the result of the Home data fetch */}
-          {homeDataMessage && (
-            <p>{homeDataMessage}</p>
-          )}
-
-          {/*  Logout Button */}
-          <button type="button" onClick={handleLogout} style={{ marginLeft: '10px' }}>
-            Logout
-          </button>
-        </div>
+      {/* Conditional rendering: Show loading or the form */}
+      {checkingAuth ? (
+        <p> Checking authentication status...</p>
       ) : (
-        // Show login form elements if no user is logged in yet (in state)
         <>
-          <div>
+          < div >
             <label htmlFor="username">Username</label>
             <input
-              id="username" // For accessibility
+              id="username"
               name="username"
               value={formData.username}
               onChange={handleChange}
               type="text"
-              disabled={isSubmitting} // Disable while submitting
+              disabled={isSubmitting}
             />
-            <FieldError message={errors.username} /> {/* Field-specific error */}
-          </div>
+            <FieldError message={errors.username} />
+          </div >
 
           <div>
             <label htmlFor="password">Password</label>
             <input
-              id="password" // For accessibility
+              id="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               type="password"
-              disabled={isSubmitting} // Disable while submitting
+              disabled={isSubmitting}
             />
-            <FieldError message={errors.password} /> {/* Field-specific error */}
+            <FieldError message={errors.password} />
           </div>
 
           <button
             type="submit"
-            disabled={isSubmitting} // Disable while submitting
+            disabled={isSubmitting}
           >
-            {isSubmitting ? 'Logging in...' : 'Login'} {/* Change text based on status */}
+            {isSubmitting ? 'Logging in...' : 'Login'}
           </button>
         </>
-      )}
-    </form>
-  )
+      )
+      }
+    </form >
+  );
 }
