@@ -1,6 +1,6 @@
 'use client'
 import { useState } from "react"
-import { login, fetchHomeData } from "../services/auth";
+import { login, fetchHomeData, logoutUser } from "../services/auth";
 import { useRouter } from "next/navigation"; // For redirection (currently commented out)
 
 // Simple component to display field-specific error messages
@@ -124,6 +124,34 @@ export default function LoginForm() {
   }
 
 
+  // logout
+  async function handleLogout() {
+    try {
+      await logoutUser(); // Call the backend logout service
+
+      // --- Frontend Cleanup After Successful Backend Logout ---
+      setLoggedInUser(null); // Clear the logged-in user state
+      localStorage.removeItem('userUsername'); // Remove username from localStorage
+
+      console.log("Frontend state cleared, redirecting to login.");
+
+      // Redirect the user back to the login page
+      router.push('/login'); // Or '/' if your login is at the root
+
+
+    } catch (error) {
+      console.error("Error during frontend logout process:", error);
+      // Optionally display an error message to the user
+      // setErrors({ general: error.message || 'Failed to log out' });
+      // Even if backend logout fails, we might want to clear frontend state
+      // depending on desired behavior, but handleLogout should ideally only
+      // be called after a successful backend response.
+    }
+  }
+
+
+
+
   // Render the form or welcome message
   return (
     <form onSubmit={handleSubmit}> {/* Form wrapper */}
@@ -148,6 +176,11 @@ export default function LoginForm() {
           {homeDataMessage && (
             <p>{homeDataMessage}</p>
           )}
+
+          {/*  Logout Button */}
+          <button type="button" onClick={handleLogout} style={{ marginLeft: '10px' }}>
+            Logout
+          </button>
         </div>
       ) : (
         // Show login form elements if no user is logged in yet (in state)

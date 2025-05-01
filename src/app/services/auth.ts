@@ -122,3 +122,47 @@ export const fetchHomeData = async () => {
     );
   }
 };
+
+export const logoutUser = async () => {
+  const endpoint = `${API_URL}/dj-rest-auth/logout/`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      credentials: "include", // IMPORTANT: Sends authentication cookies to backend!
+      headers: {
+        "X-CSRFToken": getCookie("csrftoken") || "",
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      // Handle non-2xx responses (logout might return 200, 204 No Content)
+      const errorData = await response.json().catch(() => null); // Try parsing JSON, ignore if fails
+      const errorMessage = errorData?.detail || "Logout failed";
+      throw new Error(errorMessage);
+    }
+
+    // If response.ok is true, logout was successful on backend
+    console.log("Logout successful on backend");
+    // No need to return data, just confirm success
+  } catch (error) {
+    console.error("Error during logout:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Network error during logout",
+    );
+  }
+};
+
+// Helper function to send a cookie value by name
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(";").shift() || null;
+  }
+  return null;
+}
