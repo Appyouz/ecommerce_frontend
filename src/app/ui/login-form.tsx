@@ -27,6 +27,7 @@ export default function LoginForm() {
 
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false)
   // const router = useRouter();
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -38,6 +39,7 @@ export default function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsSubmitting(true);
+    setIsSuccess(false)
 
     // validation
     const { username, password } = formData;
@@ -48,11 +50,13 @@ export default function LoginForm() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setIsSubmitting(false);
       return;
     }
 
     try {
       const response = await login(username, password);
+      setIsSuccess(true);
       console.log('Login Successful', response);
 
       // Redirect or handle sucessful login
@@ -69,42 +73,49 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit}>
-      {errors.general && (
-        <div style={{ color: 'red', marginBottom: '1rem' }}>
-          {errors.general}
+      {isSuccess ? (
+        <div style={{ color: 'green' }}>
+          Login successful! Welcome to your account.
         </div>
+      ) : (
+        <>
+          <div>
+            <label htmlFor="username">Username</label>
+            <input
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              type="text"
+              disabled={isSubmitting}
+            />
+            <FieldError message={errors.username} />
+          </div>
+
+          <div>
+            <label htmlFor="password">Password</label>
+            <input
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              type="password"
+              disabled={isSubmitting}
+            />
+            <FieldError message={errors.password} />
+          </div>
+
+          {errors.general && (
+            <div style={{ color: 'red', marginBottom: '1rem' }}>
+              {errors.general}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Logging in...' : 'Login'}
+          </button>
+        </>
       )}
-
-      <div>
-        <label htmlFor="username">Username</label>
-        <input
-          name="username"
-          value={formData.username}
-          onChange={handleChange}
-          type="text"
-          disabled={isSubmitting}
-        />
-        <FieldError message={errors.username} />
-      </div>
-
-      <div>
-        <label htmlFor="password">Password</label>
-        <input
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          type="password"
-          disabled={isSubmitting}
-        />
-        <FieldError message={errors.password} />
-      </div>
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? 'Logging in...' : 'Login'}
-      </button>
     </form>
   )
 }
