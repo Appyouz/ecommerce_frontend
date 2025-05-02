@@ -33,7 +33,7 @@ export default function Header() {
   return (
     <header style={{ padding: '10px 20px', borderBottom: '1px solid #ccc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
       <div>
-        <Link href="/">My App</Link
+        <Link href="/">My App</Link>
       </div>
 
       {/* Navigation / Auth Status */}
