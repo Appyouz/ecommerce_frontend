@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchAuthenticatedUser, fetchHomeData, logoutUser } from '../services/auth';
+import { fetchAuthenticatedUser } from '../services/auth';
 import { useAuth } from '../context/auth-content';
 
 // UserData type is now defined and managed by AuthContext.tsx
@@ -10,11 +10,11 @@ import { useAuth } from '../context/auth-content';
 
 export default function Dashboard() {
   // Get global auth state and logout function from context
-  const { user, isAuthenticated, isLoading, logoutSuccess } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   // Local state for dashboard-specific UI feedback
   const [error, setError] = useState<string | null>(null);
-  const [homeDataMessage, setHomeDataMessage] = useState<string | null>(null);
+  // const [homeDataMessage, setHomeDataMessage] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -28,37 +28,20 @@ export default function Dashboard() {
   }, [isLoading, isAuthenticated, router]);
 
   // Handle click for testing fetching authenticated data
-  async function handleFetchHomeClick() {
-    setHomeDataMessage('Fetching Home data...');
-    try {
-      const data = await fetchHomeData();
-      setHomeDataMessage(`Home data: ${data.message}`);
-      console.log("Successfully fetched Home data:", data);
-    } catch (error) {
-      setHomeDataMessage(`Failed to fetch Home data: ${error.message}`);
-      console.error("Error fetching Home data:", error);
-      // Consider checking for 401 here and potentially logging out/redirecting if access token expired and refresh failed
-    }
-  }
+  // async function handleFetchHomeClick() {
+  //   setHomeDataMessage('Fetching Home data...');
+  //   try {
+  //     const data = await fetchHomeData();
+  //     setHomeDataMessage(`Home data: ${data.message}`);
+  //     console.log("Successfully fetched Home data:", data);
+  //   } catch (error) {
+  //     setHomeDataMessage(`Failed to fetch Home data: ${error.message}`);
+  //     console.error("Error fetching Home data:", error);
+  //     // Consider checking for 401 here and potentially logging out/redirecting if access token expired and refresh failed
+  //   }
+  // }
 
   // Handle click for logging out the user
-  async function handleLogout() {
-    try {
-      await logoutUser();
-      console.log("Dashboard handleLogout: Logout successful on backend.");
-      // Call context function to update global state
-      logoutSuccess();
-      console.log("Dashboard handleLogout: Called logoutSuccess.");
-
-      // Explicitly redirect immediately after the button click logic
-      router.push('/login');
-
-    } catch (error) {
-      console.error("Dashboard: Error during logout process:", error);
-      setError("Failed to log out.");
-    }
-  }
-
   // Render logic based on global auth state (isLoading, isAuthenticated, user)
   if (isLoading) {
     return <p>Loading user data...</p>;
@@ -76,16 +59,6 @@ export default function Dashboard() {
       <div>
         <h1>Hello, {user.username}!</h1>
 
-        <button type="button" onClick={handleFetchHomeClick} style={{ marginLeft: '10px' }}>
-          Test Fetch Home Data
-        </button>
-        {homeDataMessage && (
-          <p>{homeDataMessage}</p>
-        )}
-
-        <button type="button" onClick={handleLogout} style={{ marginLeft: '10px' }}>
-          Logout
-        </button>
 
         {error && <div style={{ color: 'red' }}>{error}</div>}
 
