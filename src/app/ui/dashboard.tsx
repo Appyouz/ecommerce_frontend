@@ -1,52 +1,33 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchAuthenticatedUser, fetchHomeData, logoutUser } from '../services/auth';
+import { useAuth } from '../context/auth-content';
 
-type UserData = {
-  id: number;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-};
+// UserData type is now defined and managed by AuthContext.tsx
+// type UserData = { ... };
 
 export default function Dashboard() {
-  const [user, setUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Get global auth state and logout function from context
+  const { user, isAuthenticated, isLoading, logoutSuccess } = useAuth();
+
+  // Local state for dashboard-specific UI feedback
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
   const [homeDataMessage, setHomeDataMessage] = useState<string | null>(null);
 
+  const router = useRouter();
+
+  // useEffect to redirect if user becomes unauthenticated after the initial check
   useEffect(() => {
-    async function loadUserData() {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const authenticatedUser = await fetchAuthenticatedUser();
-
-        if (authenticatedUser) {
-          setUser(authenticatedUser);
-          console.log("Dashboard: Authenticated user loaded.");
-        } else {
-          console.log("Dashboard: User not authenticated, redirecting to login.");
-          router.push('/login');
-          return;
-        }
-
-      } catch (err) {
-        console.error("Dashboard: Error fetching user data:", err);
-        setError("Failed to load user data. Please try logging in again.");
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+    if (!isLoading && !isAuthenticated) {
+      console.log("Dashboard useEffect: Global auth check complete, user not authenticated, redirecting to login.");
+      router.push('/login');
     }
+    // Effect depends on global auth state and router
+  }, [isLoading, isAuthenticated, router]);
 
-    loadUserData();
-  }, [router]);
-
+  // Handle click for testing fetching authenticated data
   async function handleFetchHomeClick() {
     setHomeDataMessage('Fetching Home data...');
     try {
@@ -56,44 +37,62 @@ export default function Dashboard() {
     } catch (error) {
       setHomeDataMessage(`Failed to fetch Home data: ${error.message}`);
       console.error("Error fetching Home data:", error);
+      // Consider checking for 401 here and potentially logging out/redirecting if access token expired and refresh failed
     }
   }
 
+  // Handle click for logging out the user
   async function handleLogout() {
     try {
       await logoutUser();
-      console.log("Logout successful on backend and frontend state cleared.");
+      console.log("Dashboard handleLogout: Logout successful on backend.");
+      // Call context function to update global state
+      logoutSuccess();
+      console.log("Dashboard handleLogout: Called logoutSuccess.");
+
+      // Explicitly redirect immediately after the button click logic
       router.push('/login');
+
     } catch (error) {
-      console.error("Error during frontend logout process:", error);
+      console.error("Dashboard: Error during logout process:", error);
       setError("Failed to log out.");
     }
   }
 
-  if (loading) {
+  // Render logic based on global auth state (isLoading, isAuthenticated, user)
+  if (isLoading) {
     return <p>Loading user data...</p>;
   }
 
-  if (error) {
-    return <div style={{ color: 'red' }}>{error}</div>;
+  // If not loading and not authenticated, the useEffect should redirect.
+  // This provides a fallback UI if redirect is delayed or fails.
+  if (!isAuthenticated) {
+    return <p>You are not authenticated. Redirecting...</p>;
   }
 
+  // If not loading and isAuthenticated is true, user object should be available from context
   if (user) {
     return (
       <div>
         <h1>Hello, {user.username}!</h1>
+
         <button type="button" onClick={handleFetchHomeClick} style={{ marginLeft: '10px' }}>
           Test Fetch Home Data
         </button>
         {homeDataMessage && (
           <p>{homeDataMessage}</p>
         )}
+
         <button type="button" onClick={handleLogout} style={{ marginLeft: '10px' }}>
           Logout
         </button>
+
+        {error && <div style={{ color: 'red' }}>{error}</div>}
+
       </div>
     );
   }
 
+  // Fallback case (should ideally not be reached in a correct flow)
   return null;
 }
