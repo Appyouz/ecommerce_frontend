@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from "react"
-import { login, fetchAuthenticatedUser } from "../services/auth";
+import { login } from "../services/auth";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/auth-content";
 
@@ -42,7 +42,7 @@ export default function LoginForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Get state and the loginSuccess function
-  const { user, isAuthenticated, isLoading, loginSuccess } = useAuth();
+  const { isAuthenticated, isLoading, loginSuccess } = useAuth();
 
   const router = useRouter();
 
