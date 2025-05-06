@@ -17,7 +17,7 @@ type Product = {
 
 // Service function to fetch the list of all products from the backend API
 export const fetchProducts = async (): Promise<Product[]> => {
-  const endpoint = `{API_URL}/api/products/`;
+  const endpoint = `${API_URL}/api/products/`;
 
   try {
     // Make the GET Request
