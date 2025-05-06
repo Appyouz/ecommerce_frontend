@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useEffect } from "react"
+import { fetchProductById } from "../services/product-service"
+
+import { useParams } from 'next/navigation';
 
 type Product = {
   id: number;
@@ -17,13 +20,10 @@ type Product = {
   updated_at: string;
 }
 
-type ProductDetailPageProps = {
-  params: {
-    id: string;
-  }
-}
 
-export default function ProductDetailPage({ params }: ProductDetailPageProps) {
+export default function ProductDetailPage() {
+
+  const params = useParams();
   const productId = params.id;
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -39,12 +39,29 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
       console.log(`ProductDetailPage: Attempting to fetch product with ID: ${productId}`);
 
-      setTimeout(() => {
-        setLoading(false);
-      }, 500)
+      try {
+        const productData = await fetchProductById(productId as string);
+
+        setProduct(productData);
+        console.log(`ProductDetailPage: Fetch for product ${productId} complete.`);
+      } catch (err) {
+
+        console.error(`ProductDetailPage: Error fetching product ${productId}:`, err);
+        setError(`Failed to load product ${productId}. Please try again later.`);
+      } finally {
+        setLoading(false)
+      }
+
     }
 
-    loadProduct();
+    if (productId) {
+      console.log(`ProductDetailPage useEffect: productId is valid (${productId}), proceeding with fetch.`);
+      loadProduct();
+    } else {
+      console.log("ProductDetailPage useEffect: productId is invalid or not yet available from useParams, skipping fetch.");
+      setLoading(false);
+      setError("Invalid product ID provided in URL.");
+    }
   }, [productId]);
 
   if (loading) {
