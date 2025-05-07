@@ -1,4 +1,4 @@
-import ProductDetailPage from "@/app/ui/product-detail"
+import ProductDetailPage from "@/ui/product-detail";
 
 type ProductPageProps = {
   params: {
@@ -9,7 +9,7 @@ export default function Page({ params }: ProductPageProps) {
   return (
     <div>
       <h1>Product Detail</h1>
-      <ProductDetailPage />
+      <ProductDetailPage params={params} />
     </div>
   )
 }

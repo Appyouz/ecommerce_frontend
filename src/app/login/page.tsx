@@ -1,4 +1,4 @@
-import LoginForm from '@/app/ui/login-form';
+import LoginForm from '@/ui/login-form';
 
 // Register route
 export default function LoginPage() {

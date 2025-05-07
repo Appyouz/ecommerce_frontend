@@ -1,4 +1,4 @@
-import RegisterForm from '@/app/ui/register-form';
+import RegisterForm from '@/ui/register-form';
 
 // Register route
 export default function RegisterPage() {
