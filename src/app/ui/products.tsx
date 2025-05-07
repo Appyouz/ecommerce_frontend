@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { fetchProducts } from "../services/product-service"
+import ProductDetailPage from "./product-detail"
+import { useRouter } from "next/navigation"
+
+import { useParams } from "next/navigation"
 
 type Product = {
   id: number;
@@ -24,6 +28,9 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const params = useParams();
+  const productId = params.id;
+  const router = useRouter();
   useEffect(() => {
     async function loadProducts() {
       setLoading(true);
@@ -51,6 +58,14 @@ export default function ProductsPage() {
   if (error) return <div style={{ color: 'red' }}>{error}</div>
 
 
+
+  function handleDetail(id: number) {
+
+    console.log("Detail button was clicked!")
+    router.push(`/products/${id}/`)
+
+  }
+
   return (
     <div style={{ padding: '20px' }}>
       <h1>Products</h1>
@@ -70,6 +85,9 @@ export default function ProductsPage() {
                 <p style={{ fontSize: '0.9em', color: '#555', marginBottom: '5px' }}>Category: {product.category.name}</p>
               )}
               <p style={{ fontSize: '0.9em', color: product.stock > 0 ? 'green' : 'red' }}>Stock: {product.stock}</p>
+              {/* <button onClick={handleDetail}>detail</button> */}
+
+              <button onClick={() => handleDetail(product.id)}>detail</button>
             </div>
           ))}
         </div>
