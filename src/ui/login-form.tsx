@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-content";
-import { login } from "@/services/auth";
+import { login, fetchAuthenticatedUser } from "@/services/auth";
 
 const FieldError = ({ message }: { message?: string }) =>
   message ? <p style={{ color: 'red' }}>{message}</p> : null;
@@ -19,19 +19,10 @@ type FormErrors = {
 }
 
 type LoginSuccessResponse = {
-  access: string;
-  refresh: string;
-  user: {
-    id: number;
-    username: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-  }
+  access_token: string;
+  refresh_token: string;
 }
 
-// AuthenticatedUserResponse type is defined in AuthContext.tsx
-// type AuthenticatedUserResponse = LoginSuccessResponse['user']; // REMOVED
 
 export default function LoginForm() {
   // Local state for form data and submission status
@@ -71,31 +62,36 @@ export default function LoginForm() {
     }
 
     try {
-      // Call backend login service
-      const response = await login(username, password) as LoginSuccessResponse;
-      const accessToken = response.access;
-      const refreshToken = response.refresh;
-      const user = response.user; // Get user data from login response
+      await login(username, password)
+      console.log('Login attempt successful (cookies should be set).');
 
-      console.log('Login Successful!', user);
-      console.log('Access Token (likely also in HttpOnly cookie):', accessToken);
-      console.log('Refresh Token (likely also in HttpOnly cookie):', refreshToken);
+      const authenticatedUser = await fetchAuthenticatedUser();
 
-      localStorage.setItem('userUsername', user.username); // Keep for now
+      if (authenticatedUser) {
+        // If user data is successfully fetched, update the auth context state
+        console.log("LoginForm handleSubmit: Fetched authenticated user data:", authenticatedUser);
+        loginSuccess(authenticatedUser); // Call the context function with the fetched user data
+        console.log("LoginForm handleSubmit: Called loginSuccess with fetched user.");
 
-      loginSuccess(user); // Call the context function
-      console.log("LoginForm handleSubmit: Called loginSuccess.");
+        // Redirect immediately after the form submission logic
+        console.log("LoginForm handleSubmit: Attempting redirect to dashboard");
+        router.push('/dashboard');
 
-      // Explicitly redirect immediately after the form submission logic
-      console.log("LoginForm handleSubmit: Attempting redirect to dashboard");
-      router.push('/dashboard'); // Redirect immediately after login button click
+      } else {
+        // If fetchAuthenticatedUser returns null, it means authentication failed
+        // even after the login call. This is unexpected but handled.
+        console.error("LoginForm handleSubmit: Login attempt succeeded, but fetching authenticated user failed.");
+        setErrors({ general: 'Login successful, but failed to retrieve user data. Please try refreshing.' });
+      }
+
+
+
 
     } catch (error) {
       console.error('Login error:', error);
       setErrors({
         general: error instanceof Error ? error.message : 'Login failed'
       });
-      // setCheckingAuth(false); // REMOVED local state
     } finally {
       setIsSubmitting(false);
     }
