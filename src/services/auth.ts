@@ -1,4 +1,60 @@
+import { LoginResponse, User } from "@/types";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+// Define the shape of the registration response
+type RegisterResponse = {
+  user: User; // Assuming user data is returned
+};
+
+// This matches the JSON response from your new backend endpoint
+type GetAccessTokenResponse = {
+  access_token: string;
+};
+
+// Service function to handle user login
+export const login = async (
+  username: string,
+  password: string,
+): Promise<User> => {
+  const endpoint = `${API_URL}/dj-rest-auth/login/`;
+  console.log(`Attempting to log in user: ${username} via API: ${endpoint}`);
+
+  try {
+    // Include creadentials to send cookies ( important for HttpOnly setup)
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ username, password }),
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage =
+        errorData?.non_field_errors?.join(" ") ||
+        errorData?.detail ||
+        errorData?.message ||
+        `Login failed (Status: ${response.status})`;
+      console.error("Login API Error response:", errorData);
+      throw new Error(errorMessage);
+    }
+
+    // If login is successful, the HttpOnly cookies are set by the backend
+    const data: LoginResponse = await response.json();
+    console.log("Login successful:", data.user);
+    return data.user;
+  } catch (error) {
+    console.error("Error during login:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Network error during login",
+    );
+  }
+};
+
 export async function registerUser(formData: {
   username: string;
   email: string;
