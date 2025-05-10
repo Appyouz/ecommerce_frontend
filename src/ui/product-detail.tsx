@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import { fetchProductById } from "@/services/product-service";
+import { addItemToCart, fetchProductById } from "@/services/product-service";
 
 import { useParams } from 'next/navigation';
+import { useAuth } from "@/context/auth-content";
 
 type Product = {
   id: number;
@@ -30,12 +31,18 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null)
 
+  const [addingToCart, setAddinToCart] = useState(false);
+  const [addToCartMessage, setAddToCartMessage] = useState<string | null>(null);
+
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
     async function loadProduct() {
       setLoading(true);
       // Clear previous error and product data
       setError(null);
       setProduct(null);
+      setAddToCartMessage(null);
 
       console.log(`ProductDetailPage: Attempting to fetch product with ID: ${productId}`);
 
@@ -64,6 +71,42 @@ export default function ProductDetailPage() {
     }
   }, [productId]);
 
+
+  // Add to cart button handler
+  const handleAddToCart = async () => {
+    // Ensure data is loaded and user is authenticated
+    if (!product || !isAuthenticated) {
+      console.warn("Cannot add to cart: Product data not loaded or user not authenticated.");
+      setAddToCartMessage("Please log in to add items to your cart.");
+      return;
+    }
+
+    setAddinToCart(true);
+    setAddToCartMessage(null); // Clean previous messages
+
+
+    try {
+      // Call the service function to add the item to the cart
+      const quantityToAdd = 1;
+      console.log(`Attempting to add product ${product.id} with quantity ${quantityToAdd} to cart.`);
+      const cartItem = await addItemToCart(product.id, quantityToAdd)
+
+      console.log("Item added to cart successfully:", cartItem);
+      setAddToCartMessage(`${cartItem.product.name} added to cart (${cartItem.quantity} total).`);
+
+    } catch (err) {
+      console.error("Error adding item to cart:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to add item to cart.";
+      if (errorMessage.includes("Authentication token not available")) {
+        setAddToCartMessage("Authentication required. Please log in.");
+      } else {
+        setAddToCartMessage(errorMessage);
+      }
+    } finally {
+      setAddingToCart(false);
+    }
+  }
+
   if (loading) {
     return <p>Loading product details...</p>;
   }
@@ -91,6 +134,39 @@ export default function ProductDetailPage() {
         <p style={{ fontSize: '1em', color: '#555', marginBottom: '5px' }}>Category: {product.category.name}</p>
       )}
       <p style={{ fontSize: '1em', color: product.stock > 0 ? 'green' : 'red' }}>Stock: {product.stock}</p>
+
+      {isAuthenticated ? (
+        product.stock > 0 ? (
+          <div>
+            <button
+              onClick={handleAddToCart}
+              disabled={addingToCart}
+              style={{
+                padding: '10px 15px',
+                fontSize: '1em',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: addingToCart ? 'not-allowed' : 'pointer',
+                opacity: addingToCart ? 0.6 : 1,
+                marginTop: '15px'
+              }}
+            >
+              {addingToCart ? 'Adding...' : 'Add to Cart'}
+            </button>
+            {addToCartMessage && (
+              <p style={{ marginTop: '10px', color: error ? 'red' : 'green' }}>
+                {addToCartMessage}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p style={{ color: 'red', marginTop: '15px' }}>Out of Stock</p>
+        )
+      ) : (
+        <p style={{ color: '#555', marginTop: '15px' }}>Log in to add to cart.</p>
+      )}
 
     </div>
   );
