@@ -1,26 +1,13 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { getAuthToken } from "@/services/auth";
+import { Product } from "@/types";
 
-type Product = {
-  id: number;
-  name: string;
-  description: string | null;
-  price: string;
-  stock: number;
-  category: {
-    id: number;
-    name: string;
-  } | null;
-  image: string | null;
-  created_at: string;
-  updated_at: string;
-};
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Service function to fetch the list of all products from the backend API
 export const fetchProducts = async (): Promise<Product[]> => {
   const endpoint = `${API_URL}/api/products/`;
 
   try {
-    // Make the GET Request
     const response = await fetch(endpoint, {
       method: "GET",
       headers: {
@@ -87,6 +74,71 @@ export const fetchProductById = async (
       error instanceof Error
         ? error.message
         : `Network error fetching product ${id}`,
+    );
+  }
+};
+
+type CartItemResponse = {
+  id: number;
+  cart: number;
+  product: Product;
+  quantity: number;
+  created_at: string;
+  updated_at: string;
+};
+
+// Service function to add an item to the authenticated user's cart
+export const addItemToCart = async (
+  productId: number,
+  quantity: number,
+): Promise<CartItemResponse> => {
+  const endpoint = `${API_URL}/api/cart/items/`;
+  console.log(
+    `Attempting to add product ${productId} (quantity ${quantity}) to cart via API: ${endpoint}`,
+  );
+
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Authentication token not available. Please log in.");
+  }
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        product_id: productId,
+        quantity: quantity,
+      }),
+    });
+
+    if (!response.ok) {
+      // If the response is not OK, try to parse error details from the body
+      const errorData = await response.json().catch(() => null);
+      const errorMessage =
+        errorData?.detail ||
+        errorData?.message ||
+        `Failed to add item to cart (Status: ${response.status})`;
+      console.error("API Error response:", errorData);
+      throw new Error(errorMessage);
+    }
+
+    const cartItemData: CartItemResponse = await response.json();
+    return cartItemData;
+  } catch (error) {
+    console.error(
+      `Error in addItemToCart service for product ${productId}:`,
+      error,
+    );
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : `Network error adding product ${productId} to cart`,
     );
   }
 };
