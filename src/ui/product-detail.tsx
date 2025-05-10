@@ -31,7 +31,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null)
 
-  const [addingToCart, setAddinToCart] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
   const [addToCartMessage, setAddToCartMessage] = useState<string | null>(null);
 
   const { isAuthenticated } = useAuth();
@@ -81,7 +81,7 @@ export default function ProductDetailPage() {
       return;
     }
 
-    setAddinToCart(true);
+    setAddingToCart(true);
     setAddToCartMessage(null); // Clean previous messages
 
 
