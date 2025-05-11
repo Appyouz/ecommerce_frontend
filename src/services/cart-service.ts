@@ -140,7 +140,7 @@ export const updateCartItemQuantity = async (
 };
 
 export const removeCartItem = async (cartItemId: number): Promise<void> => {
-  const endpoint = `${API_URL}/api/cart/items/${cartItemId}`;
+  const endpoint = `${API_URL}/api/cart/items/${cartItemId}/`;
   console.log(
     `Attempting to remove cart item ${cartItemId} via API: ${endpoint}`,
   );
