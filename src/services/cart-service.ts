@@ -138,3 +138,57 @@ export const updateCartItemQuantity = async (
     );
   }
 };
+
+export const removeCartItem = async (cartItemId: number): Promise<void> => {
+  const endpoint = `${API_URL}/api/cart/items/${cartItemId}`;
+  console.log(
+    `Attempting to remove cart item ${cartItemId} via API: ${endpoint}`,
+  );
+
+  const token = await await getAuthToken();
+
+  if (!token) {
+    console.warn(
+      "removeCartItem: Authentication token not available. User is likely not logged in.",
+    );
+    throw new Error("Authentication token not available. Please log in.");
+  }
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      console.warn(
+        "removeCartItem: Received 401 Unauthorized. Token might be expired or invalid.",
+      );
+      throw new Error("Authentication required. Please log in.");
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage =
+        errorData?.detail ||
+        errorData?.message ||
+        `Failed to remove cart item ${cartItemId} (Status: ${response.status})`;
+      console.error("API Error response:", errorData);
+      throw new Error(errorMessage);
+    }
+
+    console.log(`Cart item ${cartItemId} removed successfully.`);
+  } catch (error) {
+    console.error(
+      `Error in removeCartItem service for item ${cartItemId}:`,
+      error,
+    );
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : `Network error removing cart item ${cartItemId}`,
+    );
+  }
+};
