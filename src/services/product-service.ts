@@ -1,5 +1,5 @@
 import { getAuthToken } from "@/services/auth";
-import { Product } from "@/types";
+import { Product, Cart, CartItem } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
