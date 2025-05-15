@@ -1,5 +1,6 @@
 'use client'
 import { Product, Cart, CartItem } from "@/types"
+import { createOrder } from "@/services/order-service";
 
 import { useState, useEffect } from "react";
 import { fetchCart, updateCartItemQuantity, removeCartItem } from "@/services/cart-service";
@@ -16,6 +17,11 @@ export default function CartPage() {
 
   const [updatingItemId, setUpdatingItemId] = useState<number | null>(null);
   const [removingItemId, setRemovingItemId] = useState<number | null>(null);
+
+
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
+
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
@@ -150,7 +156,34 @@ export default function CartPage() {
 
   }
 
+  const handleCheckout = async () => {
+    console.log("Checkout button clicked!");
 
+    if (!cart || !cart.items || cart.items.length === 0) {
+      console.warn("Cannot checkout: Cart is empty.")
+      setCheckoutMessage("Your cart is empty. Add items before checking out.")
+      return;
+    }
+
+    setIsCheckingOut(true)
+    setCheckoutMessage(null)
+
+    try {
+      const order = await createOrder();
+      console.log("Order created successfully:", order);
+      setCheckoutMessage(`Order #${order.id} created successfully!`);
+
+      setCart(null)
+    } catch (err) {
+      console.error("Error during checkout:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to create order.";
+      setCheckoutMessage(`Checkout failed: ${errorMessage}`);
+    } finally {
+      setIsCheckingOut(false);
+    }
+
+
+  }
 
 
 
@@ -237,15 +270,30 @@ export default function CartPage() {
           {/* Display total price */}
           <div style={{ marginTop: '20px', fontSize: '1.2em', fontWeight: 'bold', textAlign: 'right' }}>
             Total: ${cart.total_price} {/* total_price is already a formatted string */}
+            <button
+              onClick={handleCheckout}
+              style={{
+                marginTop: '20px',
+                marginLeft: '20px',
+                padding: '10px 20px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '1em',
+                fontWeight: 'bold',
+              }}
+            >
+              {isCheckingOut ? 'Processing Checkout...' : 'Proceed to Checkout'}
+            </button>
           </div>
-
-          {/* Will add Checkout button here later */}
-
         </div>
       ) : (
         <p>Your cart is empty.</p>
-      )}
+      )
+      }
 
-    </div>
+    </div >
   );
 }
