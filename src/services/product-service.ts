@@ -1,11 +1,20 @@
 import { getAuthToken } from "@/services/auth";
-import { Product, Cart, CartItem } from "@/types";
+import { Product, Cart, CartItem, Category } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Service function to fetch the list of all products from the backend API
-export const fetchProducts = async (): Promise<Product[]> => {
-  const endpoint = `${API_URL}/api/products/`;
+export const fetchProducts = async (
+  searchTerm: string = "",
+  categoryId: string = "",
+): Promise<Product[]> => {
+  // construct query parameters
+  const params = new URLSearchParams();
+  if (searchTerm) params.append("search", searchTerm);
+  if (categoryId) params.append("category", categoryId);
+
+  const endpoint = `${API_URL}/api/products/?${params.toString()}`;
+  console.log(`Attempting to fetch products via API: ${endpoint}`);
 
   try {
     const response = await fetch(endpoint, {
@@ -74,6 +83,39 @@ export const fetchProductById = async (
       error instanceof Error
         ? error.message
         : `Network error fetching product ${id}`,
+    );
+  }
+};
+
+export const fetchCategories = async (): Promise<Category[]> => {
+  const endpoint = `${API_URL}/api/categories/`;
+  console.log(`Attempting to fetch categories via API: ${endpoint}`);
+  try {
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage =
+        errorData?.detail ||
+        errorData?.message ||
+        `Failed to fetch categories (Status: ${response.status})`;
+      console.error("API Error response:", errorData);
+      throw new Error(errorMessage);
+    }
+
+    const categoriesData: Category[] = await response.json();
+    return categoriesData;
+  } catch (error) {
+    console.error("Error in fetchCategories service:", error);
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Network error fetching categories",
     );
   }
 };
