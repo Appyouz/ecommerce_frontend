@@ -1,11 +1,6 @@
 import ProductDetailPage from "@/ui/product-detail";
 
-type ProductPageProps = {
-  params: {
-    id: string; // The 'id' from the URL /products/[id] will be a string
-  };
-};
-export default function Page({ params }: ProductPageProps) {
+export default function Page() {
   return (
     <div>
       <h1>Product Detail</h1>
