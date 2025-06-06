@@ -1,4 +1,3 @@
-// ecommerce-frontend/src/ui/__tests__/login-form.test.tsx
 
 import { render, screen } from '@testing-library/react';
 import LoginForm from '../login-form';
