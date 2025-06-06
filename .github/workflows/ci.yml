@@ -1,0 +1,36 @@
+name: CI for Next.js Frontend
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest 
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js 
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18' 
+
+    - name: Install dependencies # Install frontend dependencies
+      run: npm ci # Use 'npm ci' for clean installs in CI (or 'yarn install --frozen-lockfile')
+
+    - name: Run tests # Run frontend tests (e.g., Jest, React Testing Library)
+      # Assuming have a 'test' script in your package.json (e.g., "test": "jest")
+      run: npm test
+
+    - name: Build Next.js application # Build the frontend for production readiness
+      # This step checks if the app builds without errors.
+      #  might need to set environment variables if your Next.js build
+      # depends on them (e.g., NEXT_PUBLIC_BACKEND_URL).
+      # If so, 'd add 'env:' here just like we did for the backend.
+      run: npm run build
