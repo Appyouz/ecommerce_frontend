@@ -2,15 +2,9 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { fetchAuthenticatedUser } from "@/services/auth";
+import { User } from "@/types";
 
 // Define the shape of the user data
-type User = {
-  id: number;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-}
 
 // Define the shape of Authentication context state and functions
 type AuthContextType = {
