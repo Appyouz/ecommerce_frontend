@@ -1,25 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 import { getAuthToken } from "./auth";
-import { Product } from "@/types";
-
-type CartItem = {
-  id: number;
-  cart: number;
-  product: Product;
-  quantity: number;
-  created_at: string;
-  updated_at: string;
-};
-
-type Cart = {
-  id: number;
-  cart: number;
-  product: Product;
-  quantity: number;
-  created_at: string;
-  updated_at: string;
-};
+import { Product, CartItem, Cart } from "@/types";
 
 // Service function to fetch the authenticated user's cart
 export const fetchCart = async (): Promise<Cart | null> => {
