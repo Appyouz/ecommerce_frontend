@@ -9,7 +9,8 @@ export default function Page({ params }: ProductPageProps) {
   return (
     <div>
       <h1>Product Detail</h1>
-      <ProductDetailPage params={params} />
+      {/* <ProductDetailPage params={params} /> */}
+      <ProductDetailPage />
     </div>
   )
 }
