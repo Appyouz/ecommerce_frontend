@@ -1,4 +1,5 @@
 import { LoginResponse, User } from "@/types";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Define the shape of the registration response
@@ -6,11 +7,6 @@ type RegisterResponse = {
   user: User;
 };
 
-type GetAccessTokenResponse = {
-  access_token: string;
-};
-
-// Service function to handle user login
 export const login = async (
   username: string,
   password: string,
@@ -26,7 +22,6 @@ export const login = async (
         Accept: "application/json",
       },
       body: JSON.stringify({ username, password }),
-      credentials: "include",
     });
 
     if (!response.ok) {
@@ -40,9 +35,15 @@ export const login = async (
       throw new Error(errorMessage);
     }
 
-    // If login is successful, the HttpOnly cookies are set by the backend.
-    // The response body might contain user data, but not necessarily the tokens.
     const data: LoginResponse = await response.json();
+
+    // Store access token in localStorage
+    if (data.access_token) {
+      localStorage.setItem("access_token", data.access_token);
+    } else {
+      console.warn("No access_token returned in login response.");
+    }
+
     console.log("Login successful:", data.user);
     return data.user;
   } catch (error) {
@@ -53,7 +54,6 @@ export const login = async (
   }
 };
 
-// Service function to handle user registration
 export const registerUser = async (formData: {
   username: string;
   email: string;
@@ -81,7 +81,6 @@ export const registerUser = async (formData: {
       : await response.text();
 
     if (!response.ok) {
-      // Handle Django REST framework error format
       const errorMessage =
         responseData?.username?.join(" ") ||
         responseData?.email?.join(" ") ||
@@ -107,22 +106,27 @@ export const registerUser = async (formData: {
   }
 };
 
-// Service function to fetch the authenticated user's data
 export const fetchAuthenticatedUser = async (): Promise<User | null> => {
   const endpoint = `${API_URL}/dj-rest-auth/user/`;
   console.log(`Attempting to fetch authenticated user via API: ${endpoint}`);
+
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    console.log("No access token found, user not authenticated.");
+    return null;
+  }
 
   try {
     const response = await fetch(endpoint, {
       method: "GET",
       headers: {
+        "Content-Type": "application/json",
         Accept: "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      credentials: "include",
     });
 
     if (response.status === 401) {
-      // User is not authenticated based on the cookie
       console.log("fetchAuthenticatedUser: User not authenticated (401).");
       return null;
     }
@@ -138,38 +142,28 @@ export const fetchAuthenticatedUser = async (): Promise<User | null> => {
     }
 
     const userData: User = await response.json();
-    console.log(
-      "fetchAuthenticatedUser: User data fetched successfully.",
-      userData,
-    );
+    console.log("Authenticated user fetched successfully.", userData);
     return userData;
   } catch (error) {
     console.error("Error fetching authenticated user:", error);
-    // Return null or re-throw depending on desired error handling
-    // If there's a network error, it might mean the user *is* authenticated but the request failed.
-    // However, for initial auth check, returning null on error is often acceptable.
     return null;
   }
 };
 
-// Service function to handle user logout
 export const logoutUser = async (): Promise<void> => {
-  const endpoint = `${API_URL}/dj-rest-auth/logout/`;
-  console.log(`Attempting to log out via API: ${endpoint}`);
+  console.log("Logging out user...");
 
+  // Optionally: you can still call /dj-rest-auth/logout/ if you want to tell backend
   try {
+    const endpoint = `${API_URL}/dj-rest-auth/logout/`;
+
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        // Include CSRF token for POST requests if CSRF protection is enabled
-        "X-CSRFToken": getCookie("csrftoken") || "",
+        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
       },
-      credentials: "include",
-      // Some logout endpoints might require sending the refresh token in the body
-      // Check dj-rest-auth docs if needed, but often cookie is sufficient.
-      // body: JSON.stringify({ refresh_token: '...' })
     });
 
     if (!response.ok) {
@@ -179,72 +173,16 @@ export const logoutUser = async (): Promise<void> => {
         errorData?.message ||
         `Logout failed (Status: ${response.status})`;
       console.error("Logout API Error response:", errorData);
-      throw new Error(errorMessage);
+      // Do not throw here — we will still clear token on client
+    } else {
+      console.log("Backend logout successful.");
     }
-
-    console.log("Logout successful.");
-    // No need to handle tokens here as they are removed via HttpOnly cookie on backend
   } catch (error) {
     console.error("Error during logout:", error);
-    throw new Error(
-      error instanceof Error ? error.message : "Network error during logout",
-    );
+    // Proceed to clear token anyway
   }
-};
 
-// Helper function to send a cookie value by name (used for CSRF token)
-function getCookie(name: string): string | null {
-  if (typeof document === "undefined") {
-    return null;
-  }
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    return parts.pop()?.split(";").shift() || null;
-  }
-  return null;
-}
-
-// Implement the secure getAuthToken function
-// This function calls the backend endpoint to retrieve the access token string
-// from the HttpOnly cookie.
-export const getAuthToken = async (): Promise<string | null> => {
-  const endpoint = `${API_URL}/auth/get-token/`;
-  console.log(`Attempting to retrieve access token from backend: ${endpoint}`);
-
-  try {
-    const response = await fetch(endpoint, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-      credentials: "include",
-    });
-
-    if (response.status === 401) {
-      console.log(
-        "getAuthToken: User not authenticated (401 response from backend).",
-      );
-      return null;
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      const errorMessage =
-        errorData?.detail ||
-        errorData?.message ||
-        `Failed to retrieve access token (Status: ${response.status})`;
-      console.error("getAuthToken API Error response:", errorData);
-      throw new Error(errorMessage);
-    }
-
-    // Parse the response body which should contain the access token string
-    const data: GetAccessTokenResponse = await response.json();
-    console.log("getAuthToken: Access token retrieved successfully.");
-    return data.access_token;
-  } catch (error) {
-    console.error("Error retrieving access token:", error);
-    // If there's a network error, assume token is not available
-    return null;
-  }
+  // Always clear access_token locally
+  localStorage.removeItem("access_token");
+  console.log("Access token removed from localStorage. Logout complete.");
 };
