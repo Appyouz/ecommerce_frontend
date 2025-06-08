@@ -72,11 +72,6 @@ export const login = async (
       if (typeof window !== "undefined") {
         // We store it as 'access_token' in localStorage for consistency with `getAccessToken`
         localStorage.setItem("access_token", data.access);
-        // CHANGE 3: Check for 'data.refresh' instead of 'data.refresh_token'
-        // If backend also returns refresh_token in the body, store it:
-        if (data.refresh) {
-          localStorage.setItem("refresh_token", data.refresh);
-        }
       }
     } else {
       // This case indicates backend didn't return tokens as expected
