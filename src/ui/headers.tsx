@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { logoutUser } from "@/services/auth"
-import { useAuth } from "@/context/auth-content"
+import { useAuth } from "@/context/auth-context"
 
 // Header component to display global authentication status and actions
 export default function Header() {

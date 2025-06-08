@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { addItemToCart, fetchProductById } from "@/services/product-service";
 
 import { useParams } from 'next/navigation';
-import { useAuth } from "@/context/auth-content";
+import { useAuth } from "@/context/auth-context";
 
 type Product = {
   id: number;

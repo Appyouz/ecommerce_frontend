@@ -1,7 +1,7 @@
 
 import { render, screen } from '@testing-library/react';
 import RegisterForm from '../register-form';
-import { AuthContext, useAuth } from '@/context/auth-content';
+import { AuthContext, useAuth } from '@/context/auth-context';
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({

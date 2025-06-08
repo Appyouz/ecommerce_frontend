@@ -1,4 +1,4 @@
-import { AuthProvider } from "../context/auth-content"
+import { AuthProvider } from "../context/auth-context"
 import Header from "../ui/headers"
 
 export default function Layout({ children }: { children: React.ReactNode }) {

@@ -1,10 +1,9 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { fetchAuthenticatedUser } from "@/services/auth";
+import { fetchAuthenticatedUser, clearAuthTokens } from "@/services/auth";
 import { User } from "@/types";
-
-// Define the shape of the user data
+import { useRouter } from 'next/navigation';
 
 // Define the shape of Authentication context state and functions
 type AuthContextType = {
@@ -20,8 +19,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  loginSuccess: () => { },
-  logoutSuccess: () => { },
+  loginSuccess: () => { console.log("loginSuccess not implemented yet."); },
+  logoutSuccess: () => { console.log("logoutSuccess not implemented yet."); },
 })
 
 // Custom hook to easily consume auth context
@@ -41,30 +40,36 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // useEffect for initial authentication check when the provider mounts
   useEffect(() => {
     async function checkAuthentication() {
-      setIsLoading(true);
+      setIsLoading(true); // Indicate loading state
       try {
-        const authenticatedUser = await fetchAuthenticatedUser();
+        const authenticatedUser = await fetchAuthenticatedUser(); // This uses requestWithAuth internally
         if (authenticatedUser) {
           setUser(authenticatedUser);
           setIsAuthenticated(true);
           console.log("AuthContext: User authenticated on app load.");
         } else {
+          // If fetchAuthenticatedUser returns null (e.g., token expired or no token)
           setUser(null);
           setIsAuthenticated(false);
-          console.log("AuthContext: User not authenticated on app load.");
+          // Explicitly clear tokens from localStorage if not authenticated on load
+          // This covers cases where tokens might be stale but not yet cleared by requestWithAuth
+          clearAuthTokens();
+          console.log("AuthContext: User not authenticated on app load. Tokens cleared.");
         }
       } catch (error) {
         console.error("AuthContext: Error during initial auth check", error);
+        // On any error during initial check, assume not authenticated and clear tokens
         setUser(null);
         setIsAuthenticated(false);
+        clearAuthTokens();
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // End loading state
         console.log("AuthContext: Initial auth check complete.")
       }
     }
 
     checkAuthentication();
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
   // Function called by login component after successful API login
   const loginSuccess = (userData: User) => {
@@ -74,17 +79,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log("AuthContext: State updated - User logged in.");
   }
 
-  // Function called by logout component after successful API logout
+  // Function called when the user explicitly logs out OR when an authentication failure
+  // (like a failed token refresh) occurs that requires full re-login.
   const logoutSuccess = () => {
+    clearAuthTokens(); // CRITICAL: Clear tokens from localStorage
     setUser(null);
     setIsAuthenticated(false);
-    console.log("AuthContext: State updated - User logged out.");
+    console.log("AuthContext: State updated - User logged out. Tokens cleared.");
+    // Optionally, redirect to login page here or let the component that calls logoutSuccess handle it.
+    // Example for redirection (requires Next.js useRouter hook if outside a component):
+    const router = useRouter();
+    router.push('/login');
   }
 
   return (
-    < AuthContext.Provider value={{ user, isAuthenticated, isLoading, loginSuccess, logoutSuccess }
-    }>
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, loginSuccess, logoutSuccess }}>
       {children}
-    </AuthContext.Provider >
+    </AuthContext.Provider>
   )
 }

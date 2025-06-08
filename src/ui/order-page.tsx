@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchOrders } from '@/services/order-service';
-import { useAuth } from '@/context/auth-content';
+import { useAuth } from '@/context/auth-context';
 import { OrderResponse } from '@/types';
 
 

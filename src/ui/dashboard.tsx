@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // import { fetchAuthenticatedUser } from '@/services/auth';
-import { useAuth } from '@/context/auth-content';
+import { useAuth } from '@/context/auth-context';
 
 // UserData type is now defined and managed by AuthContext.tsx
 // type UserData = { ... };

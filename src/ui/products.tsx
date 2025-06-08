@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { fetchProducts, fetchCategories } from "@/services/product-service"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Product, Category } from "@/types";
-import { useAuth } from "@/context/auth-content"
+import { useAuth } from "@/context/auth-context"
 
 
 export default function ProductsPage() {

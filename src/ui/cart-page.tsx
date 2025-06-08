@@ -4,7 +4,7 @@ import { createOrder } from "@/services/order-service";
 
 import { useState, useEffect } from "react";
 import { fetchCart, updateCartItemQuantity, removeCartItem } from "@/services/cart-service";
-import { useAuth } from "@/context/auth-content";
+import { useAuth } from "@/context/auth-context";
 import { useParams } from "next/navigation";
 
 
