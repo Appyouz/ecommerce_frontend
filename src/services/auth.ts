@@ -4,8 +4,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 // Define the shape of the login response when using header authentication
 type LoginResponseWithTokens = {
   user: User;
-  access_token: string;
-  refresh_token: string; // If refresh token is also returned in body
+  access: string; // Changed from access_token
+  refresh: string; // Changed from refresh_token
 };
 
 // Helper function to get the current access token from localStorage
@@ -66,14 +66,16 @@ export const login = async (
       throw new Error(errorMessage);
     }
 
-    // NEW: Extract tokens from response body and store in localStorage
     const data: LoginResponseWithTokens = await response.json();
-    if (data.access_token) {
+    // CHANGE 2: Check for 'data.access' instead of 'data.access_token'
+    if (data.access) {
       if (typeof window !== "undefined") {
-        localStorage.setItem("access_token", data.access_token);
+        // We store it as 'access_token' in localStorage for consistency with `getAccessToken`
+        localStorage.setItem("access_token", data.access);
+        // CHANGE 3: Check for 'data.refresh' instead of 'data.refresh_token'
         // If backend also returns refresh_token in the body, store it:
-        if (data.refresh_token) {
-          localStorage.setItem("refresh_token", data.refresh_token);
+        if (data.refresh) {
+          localStorage.setItem("refresh_token", data.refresh);
         }
       }
     } else {
@@ -184,10 +186,6 @@ export const fetchAuthenticatedUser = async (): Promise<User | null> => {
     return userData;
   } catch (error) {
     console.error("Error fetching authenticated user:", error);
-    // If there's a network error, it might mean the user *is* authenticated but the request failed.
-    // For initial auth check, returning null on error is often acceptable.
-    // However, if the error is due to an invalid token, clearing it is a good idea.
-    // Consider inspecting the error type more thoroughly if needed.
     return null;
   }
 };
