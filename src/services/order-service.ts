@@ -1,4 +1,4 @@
-import { getAuthToken } from "@/services/auth";
+import { getAuthHeaders, clearAuthTokens } from "@/services/auth";
 import { OrderResponse } from "@/types";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -6,30 +6,22 @@ export const createOrder = async (): Promise<OrderResponse> => {
   const endpoint = `${API_URL}/api/orders/`;
   console.log(`Attempting to create order via API: ${endpoint}`);
 
-  const token = await getAuthToken();
-
-  if (!token) {
-    console.warn(
-      "createOrder: Authentication token not available. User is likely not logged in.",
-    );
-    throw new Error("Authentication token not available. Please log in.");
-  }
-
   try {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        Authorization: `Bearer ${token}`,
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({}),
     });
 
     if (response.status === 401) {
       console.warn(
-        "createOrder: Received 401 Unauthorized. Token might be expired or invalid.",
+        "createOrder: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
       );
+      clearAuthTokens();
       throw new Error("Authentication required. Please log in.");
     }
 
@@ -68,29 +60,17 @@ export const fetchOrders = async (): Promise<OrderResponse[]> => {
   const endpoint = `${API_URL}/api/orders/`;
   console.log(`Attempting to fetch orders via API: ${endpoint}`);
 
-  const token = await getAuthToken();
-
-  if (!token) {
-    console.warn(
-      "fetchOrders: Authentication token not available. User is likely not logged in.",
-    );
-    throw new Error("Authentication token not available. Please log in.");
-  }
-
   try {
     const response = await fetch(endpoint, {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      // No body needed for a GET request
+      headers: getAuthHeaders(),
     });
 
     if (response.status === 401) {
       console.warn(
-        "fetchOrders: Received 401 Unauthorized. Token might be expired or invalid.",
+        "fetchOrders: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
       );
+      clearAuthTokens();
       throw new Error("Authentication required. Please log in.");
     }
 
@@ -104,7 +84,6 @@ export const fetchOrders = async (): Promise<OrderResponse[]> => {
       throw new Error(errorMessage);
     }
 
-    // The backend GET /api/orders/ endpoint returns a LIST of orders
     const ordersData: OrderResponse[] = await response.json();
     console.log("Orders fetched successfully:", ordersData);
     return ordersData;

@@ -1,4 +1,4 @@
-import { LoginResponse, User } from "@/types";
+import { User } from "@/types";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Define the shape of the login response when using header authentication
@@ -17,7 +17,7 @@ const getAccessToken = (): string | null => {
 };
 
 // Helper function to clear all auth tokens from localStorage
-const clearAuthTokens = () => {
+export const clearAuthTokens = () => {
   if (typeof window !== "undefined") {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token"); // If store refresh token
@@ -25,7 +25,7 @@ const clearAuthTokens = () => {
 };
 
 // Helper function to get authorization headers
-const getAuthHeaders = () => {
+export const getAuthHeaders = () => {
   const token = getAccessToken();
   const headers: HeadersInit = {
     "Content-Type": "application/json",

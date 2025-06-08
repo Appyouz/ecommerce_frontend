@@ -1,6 +1,5 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-import { getAuthToken } from "./auth";
+import { getAuthHeaders, clearAuthTokens } from "./auth";
 import { Product, CartItem, Cart } from "@/types";
 
 // Service function to fetch the authenticated user's cart
@@ -8,30 +7,18 @@ export const fetchCart = async (): Promise<Cart | null> => {
   const endpoint = `${API_URL}/api/cart/`;
   console.log(`Attempting to fetch user's cart via API: ${endpoint}`);
 
-  const token = await getAuthToken();
-
-  if (!token) {
-    console.warn(
-      "fetchCart: Authentication token not available. User is likely not logged in.",
-    );
-    return null; // This allows component to display a message please log in
-  }
-
   try {
     const response = await fetch(endpoint, {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
-    if (response.status == 401) {
+    if (response.status === 401) {
       console.warn(
-        "fetchCart: Received 401 Unauthorized. Token might be expired or invalid.",
+        "fetchCart: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
       );
-
-      return null;
+      clearAuthTokens(); // Clear stale tokens from localStorage
+      return null; // Return null to indicate user is not authenticated
     }
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
@@ -47,7 +34,6 @@ export const fetchCart = async (): Promise<Cart | null> => {
     return cartData;
   } catch (error) {
     console.error("Error in fetchCart service:", error);
-    // Re-throw a new Error with a user-friendly message
     throw new Error(
       error instanceof Error ? error.message : "Network error fetching cart",
     );
@@ -64,24 +50,14 @@ export const updateCartItemQuantity = async (
     `Attempting to update cart item ${cartItemId} with quantity ${newQuantity} via API: ${endpoint}`,
   );
 
-  const token = await getAuthToken();
-
-  if (!token) {
-    console.warn(
-      "updateCartItemQuantity: Authentication token not available. User is likely not logged in.",
-    );
-    throw new Error("Authentication token not available. Please log in.");
-  }
-
   try {
     const response = await fetch(endpoint, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        Authorization: `Bearer ${token}`,
+        ...getAuthHeaders(), // Use spread operator to merge
       },
-      // Send the new quantity in the request body
       body: JSON.stringify({
         quantity: newQuantity,
       }),
@@ -89,8 +65,9 @@ export const updateCartItemQuantity = async (
 
     if (response.status === 401) {
       console.warn(
-        "updateCartItemQuantity: Received 401 Unauthorized. Token might be expired or invalid.",
+        "updateCartItemQuantity: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
       );
+      clearAuthTokens();
       throw new Error("Authentication required. Please log in.");
     }
 
@@ -99,7 +76,7 @@ export const updateCartItemQuantity = async (
       const errorMessage =
         errorData?.detail ||
         errorData?.message ||
-        `Failed to fetch cart (Status: ${response.status})`;
+        `Failed to update cart (Status: ${response.status})`;
       console.error("API Error response:", errorData);
       throw new Error(errorMessage);
     }
@@ -112,7 +89,6 @@ export const updateCartItemQuantity = async (
       `Error in updateCartItemQuantity service for item ${cartItemId}:`,
       error,
     );
-    // Re-throw a new Error with a user-friendly message
     throw new Error(
       error instanceof Error
         ? error.message
@@ -127,27 +103,17 @@ export const removeCartItem = async (cartItemId: number): Promise<void> => {
     `Attempting to remove cart item ${cartItemId} via API: ${endpoint}`,
   );
 
-  const token = await await getAuthToken();
-
-  if (!token) {
-    console.warn(
-      "removeCartItem: Authentication token not available. User is likely not logged in.",
-    );
-    throw new Error("Authentication token not available. Please log in.");
-  }
-
   try {
     const response = await fetch(endpoint, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (response.status === 401) {
       console.warn(
-        "removeCartItem: Received 401 Unauthorized. Token might be expired or invalid.",
+        "removeCartItem: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
       );
+      clearAuthTokens();
       throw new Error("Authentication required. Please log in.");
     }
 
@@ -171,6 +137,73 @@ export const removeCartItem = async (cartItemId: number): Promise<void> => {
       error instanceof Error
         ? error.message
         : `Network error removing cart item ${cartItemId}`,
+    );
+  }
+};
+
+type CartItemResponse = {
+  id: number;
+  cart: number;
+  product: Product;
+  quantity: number;
+  created_at: string;
+  updated_at: string;
+};
+
+// Service function to add an item to the authenticated user's cart
+export const addItemToCart = async (
+  productId: number,
+  quantity: number,
+): Promise<CartItemResponse> => {
+  const endpoint = `${API_URL}/api/cart/items/`;
+  console.log(
+    `Attempting to add product ${productId} (quantity ${quantity}) to cart via API: ${endpoint}`,
+  );
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        product_id: productId,
+        quantity: quantity,
+      }),
+    });
+
+    if (response.status === 401) {
+      console.warn(
+        "addItemToCart: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
+      );
+      clearAuthTokens();
+      throw new Error("Authentication required. Please log in.");
+    }
+
+    if (!response.ok) {
+      // If the response is not OK, try to parse error details from the body
+      const errorData = await response.json().catch(() => null);
+      const errorMessage =
+        errorData?.detail ||
+        errorData?.message ||
+        `Failed to add item to cart (Status: ${response.status})`;
+      console.error("API Error response:", errorData);
+      throw new Error(errorMessage);
+    }
+
+    const cartItemData: CartItemResponse = await response.json();
+    return cartItemData;
+  } catch (error) {
+    console.error(
+      `Error in addItemToCart service for product ${productId}:`,
+      error,
+    );
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : `Network error adding product ${productId} to cart`,
     );
   }
 };

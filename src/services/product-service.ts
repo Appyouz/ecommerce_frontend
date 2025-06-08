@@ -1,5 +1,5 @@
-import { getAuthToken } from "@/services/auth";
-import { Product, Cart, CartItem, Category } from "@/types";
+import { Product, Category } from "@/types";
+import { getAuthHeaders, clearAuthTokens } from "@/services/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -8,7 +8,6 @@ export const fetchProducts = async (
   searchTerm: string = "",
   categoryId: string = "",
 ): Promise<Product[]> => {
-  // construct query parameters
   const params = new URLSearchParams();
   if (searchTerm) params.append("search", searchTerm);
   if (categoryId) params.append("category", categoryId);
@@ -33,7 +32,6 @@ export const fetchProducts = async (
       throw new Error(errorMessage);
     }
 
-    // Parse and return JSON response
     const productsData: Product[] = await response.json();
     return productsData;
   } catch (error) {
@@ -139,19 +137,13 @@ export const addItemToCart = async (
     `Attempting to add product ${productId} (quantity ${quantity}) to cart via API: ${endpoint}`,
   );
 
-  const token = await getAuthToken();
-
-  if (!token) {
-    throw new Error("Authentication token not available. Please log in.");
-  }
-
   try {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        Authorization: `Bearer ${token}`,
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({
         product_id: productId,
@@ -159,8 +151,15 @@ export const addItemToCart = async (
       }),
     });
 
+    if (response.status === 401) {
+      console.warn(
+        "addItemToCart (product-service): Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
+      );
+      clearAuthTokens();
+      throw new Error("Authentication required. Please log in.");
+    }
+
     if (!response.ok) {
-      // If the response is not OK, try to parse error details from the body
       const errorData = await response.json().catch(() => null);
       const errorMessage =
         errorData?.detail ||
