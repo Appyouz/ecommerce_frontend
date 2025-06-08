@@ -2,9 +2,17 @@ import { User } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// Define the shape of the login response when using header authentication
+// IMPORTANT: Matches what your backend is currently sending ('access' and 'refresh')
+type LoginResponseWithTokens = {
+  user: User;
+  access: string;
+  refresh: string;
+};
+
 // --- Token Management Functions ---
-const ACCESS_TOKEN_KEY = "access";
-const REFRESH_TOKEN_KEY = "refresh";
+const ACCESS_TOKEN_KEY = "access_token"; // Key for localStorage
+const REFRESH_TOKEN_KEY = "refresh_token"; // Key for localStorage
 
 /**
  * Stores access and refresh tokens in localStorage.
@@ -38,6 +46,7 @@ export const getAccessToken = (): string | null => {
  * @returns The refresh token string or null if not found.
  */
 const getRefreshToken = (): string | null => {
+  // Not exported, for internal use in refreshAccessToken
   if (typeof window !== "undefined") {
     return localStorage.getItem(REFRESH_TOKEN_KEY);
   }
@@ -75,7 +84,7 @@ export const refreshAccessToken = async (): Promise<string> => {
   const refreshToken = getRefreshToken();
   if (!refreshToken) {
     console.warn("No refresh token available. Cannot refresh.");
-    clearAuthTokens();
+    clearAuthTokens(); // No refresh token, so user needs to re-login
     throw new Error("No refresh token available.");
   }
 
@@ -100,8 +109,8 @@ export const refreshAccessToken = async (): Promise<string> => {
     }
 
     const data = await response.json();
-    const newAccessToken = data.access;
-    const newRefreshToken = data.refresh || refreshToken; // Refresh token rotation if backend sends new one
+    const newAccessToken = data.access; // Backend sends 'access'
+    const newRefreshToken = data.refresh || refreshToken; // Backend sends 'refresh', or use old if rotation not active
 
     setAuthTokens(newAccessToken, newRefreshToken); // Store new tokens
     console.log("Access token refreshed successfully.");
@@ -147,17 +156,19 @@ export const requestWithAuth = async (
       console.log("Retrying original request with new access token...");
       response = await fetch(url, { ...options, headers });
     } catch (refreshError) {
-      console.error("Failed to refresh token. Redirecting to login.");
-      // If refresh fails, clear tokens and re-throw to trigger logout/login page
-      clearAuthTokens();
-      throw new Error("Authentication required. Please log in.");
+      console.error(
+        "Failed to refresh token. Redirecting to login or handling globally.",
+      );
+      // If refresh fails, the error is propagated. Your AuthContext should handle this.
+      throw new Error("Authentication required. Please log in."); // Re-throw to indicate required auth
     }
   }
 
-  // If after refresh (or initial attempt), the response is still 401
+  // If after retry, still 401 or initial was 401 for auth required pages
   if (response.status === 401) {
-    console.warn("Request still resulted in 401 after refresh attempt.");
-    clearAuthTokens(); // Ensure tokens are cleared if still unauthorized
+    console.warn("Request still resulted in 401 after authentication attempt.");
+    // No need to clear here if refreshAccessToken already did it.
+    // This error will be caught by the component and should trigger logout/redirect.
     throw new Error("Authentication required. Please log in.");
   }
 
@@ -193,26 +204,21 @@ export const login = async (
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    console.log("Login successful. Full response data:", data); // Log full data to see tokens
+    const data: LoginResponseWithTokens = await response.json(); // Use the explicit type here
+    console.log("Login successful. Full response data:", data);
 
-    // Store the tokens received from the backend
-    if (data.access_token && data.refresh_token) {
-      // dj-rest-auth with JWTSerializer uses access_token and refresh_token
-      setAuthTokens(data.access_token, data.refresh_token);
-    } else if (data.key) {
-      console.warn(
-        "Received 'key' instead of JWT tokens. Check backend configuration.",
-      );
-      setAuthTokens(data.key, ""); // Store as access token, no refresh
+    if (data.access && data.refresh) {
+      setAuthTokens(data.access, data.refresh);
     } else {
+      // This indicates a problem if refresh is empty (which is your current backend issue)
       console.error(
-        "Login response did not contain expected access/refresh tokens.",
+        "Login response did not contain expected valid access/refresh tokens. Backend sent:",
+        data,
       );
       throw new Error("Login successful, but tokens not found in response.");
     }
 
-    return data.user;
+    return data.user; // Assuming user data is nested under 'user' key as per your previous setup
   } catch (error) {
     console.error("Error during login:", error);
     throw new Error(
@@ -221,7 +227,7 @@ export const login = async (
   }
 };
 
-// Service function to handle user registration
+// Service function to handle user registration (simplified, assumes backend sends tokens)
 export const registerUser = async (formData: {
   username: string;
   email: string;
@@ -243,10 +249,9 @@ export const registerUser = async (formData: {
       body: JSON.stringify(formData),
     });
 
-    const contentType = response.headers.get("content-type");
-    const responseData = contentType?.includes("application/json")
-      ? await response.json()
-      : await response.text();
+    const responseData: LoginResponseWithTokens | any = await response
+      .json()
+      .catch(() => null);
 
     if (!response.ok) {
       const errorMessage =
@@ -260,16 +265,16 @@ export const registerUser = async (formData: {
       throw new Error(errorMessage);
     }
 
-    // After successful registration, dj-rest-auth/registration might return tokens.
-    // If it does, store them.
-    if (responseData.access_token && responseData.refresh_token) {
-      setAuthTokens(responseData.access_token, responseData.refresh_token);
+    // After successful registration, dj-rest-auth/registration often returns tokens.
+    // Store them if available.
+    if (responseData && responseData.access && responseData.refresh) {
+      setAuthTokens(responseData.access, responseData.refresh);
     } else {
       console.warn(
-        "Registration response did not contain new access/refresh tokens. User might need to log in separately.",
+        "Registration response did not contain new access/refresh tokens. User might need to log in separately after registration.",
       );
       // If registration doesn't return tokens, the user will need to explicitly log in.
-      // Might want to handle this UI flow in your component.
+      // Might want to handle this UI flow in your component (e.g., redirect to login page).
     }
 
     const userData: User = responseData.user || responseData;
@@ -293,7 +298,7 @@ export const fetchAuthenticatedUser = async (): Promise<User | null> => {
   console.log(`Attempting to fetch authenticated user via API: ${endpoint}`);
 
   try {
-    // Use the new requestWithAuth wrapper
+    // Use the new requestWithAuth wrapper for all authenticated API calls
     const response = await requestWithAuth(endpoint, {
       method: "GET",
       headers: {
@@ -301,9 +306,6 @@ export const fetchAuthenticatedUser = async (): Promise<User | null> => {
       },
     });
 
-    // requestWithAuth already handles 401 for token expiry/refresh.
-    // If it reaches here, it implies a successful request or a persistent 401
-    // that was re-thrown by requestWithAuth.
     if (!response.ok) {
       // If we reach here and it's not ok, it's a non-auth related API error
       const errorData = await response.json().catch(() => null);
@@ -323,8 +325,7 @@ export const fetchAuthenticatedUser = async (): Promise<User | null> => {
     return userData;
   } catch (error) {
     console.error("Error fetching authenticated user:", error);
-    // If requestWithAuth threw an error (e.g., auth required), return null to indicate no user
-    return null;
+    return null; // Return null on error to indicate no user data
   }
 };
 
@@ -334,7 +335,7 @@ export const logoutUser = async (): Promise<void> => {
   console.log(`Attempting to log out via API: ${endpoint}`);
 
   try {
-    // Use requestWithAuth for logout as well, though it doesn't need a token,
+    // Use requestWithAuth for logout as well for consistency
     const response = await requestWithAuth(endpoint, {
       method: "POST",
       headers: {
@@ -353,13 +354,11 @@ export const logoutUser = async (): Promise<void> => {
       throw new Error(errorMessage);
     }
 
-    // Always clear local tokens on successful logout
-    clearAuthTokens();
+    clearAuthTokens(); // Always clear local tokens on successful logout
     console.log("Logout successful.");
   } catch (error) {
     console.error("Error during logout:", error);
-    // Even if logout API call fails, clear local tokens to ensure client-side state is clean
-    clearAuthTokens();
+    clearAuthTokens(); // Even if API fails, clear local tokens to ensure client-side state is clean
     throw new Error(
       error instanceof Error ? error.message : "Network error during logout",
     );
