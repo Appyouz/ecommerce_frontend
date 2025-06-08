@@ -1,41 +1,6 @@
 import { User } from "@/types";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-// Define the shape of the login response when using header authentication
-type LoginResponseWithTokens = {
-  user: User;
-  access: string; // Changed from access_token
-  refresh: string; // Changed from refresh_token
-};
-
-// Helper function to get the current access token from localStorage
-const getAccessToken = (): string | null => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("access_token");
-  }
-  return null;
-};
-
-// Helper function to clear all auth tokens from localStorage
-export const clearAuthTokens = () => {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token"); // If store refresh token
-  }
-};
-
-// Helper function to get authorization headers
-export const getAuthHeaders = () => {
-  const token = getAccessToken();
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  return headers;
-};
 
 // Service function to handle user login
 export const login = async (
@@ -52,6 +17,7 @@ export const login = async (
         "Content-Type": "application/json",
         Accept: "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({ username, password }),
     });
 
@@ -66,23 +32,9 @@ export const login = async (
       throw new Error(errorMessage);
     }
 
-    const data: LoginResponseWithTokens = await response.json();
-    // CHANGE 2: Check for 'data.access' instead of 'data.access_token'
-    if (data.access) {
-      if (typeof window !== "undefined") {
-        // We store it as 'access_token' in localStorage for consistency with `getAccessToken`
-        localStorage.setItem("access_token", data.access);
-        if (data.refresh) {
-          localStorage.setItem("refresh_token", data.refresh);
-        }
-      }
-    } else {
-      // This case indicates backend didn't return tokens as expected
-      console.error("Login successful but no tokens received:", data);
-      throw new Error("Login successful, but failed to retrieve tokens.");
-    }
+    const data = await response.json();
+    console.log("Login successful. User data:", data.user);
 
-    console.log("Login successful:", data.user);
     return data.user;
   } catch (error) {
     console.error("Error during login:", error);
@@ -120,7 +72,6 @@ export const registerUser = async (formData: {
       : await response.text();
 
     if (!response.ok) {
-      // Handle Django REST framework error format
       const errorMessage =
         responseData?.username?.join(" ") ||
         responseData?.email?.join(" ") ||
@@ -154,15 +105,14 @@ export const fetchAuthenticatedUser = async (): Promise<User | null> => {
   try {
     const response = await fetch(endpoint, {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: {
+        Accept: "application/json",
+      },
+      credentials: "include",
     });
 
     if (response.status === 401) {
-      // User is not authenticated. Clear any stale tokens.
-      console.log(
-        "fetchAuthenticatedUser: User not authenticated (401). Clearing tokens.",
-      );
-      clearAuthTokens();
+      console.log("fetchAuthenticatedUser: User not authenticated (401).");
       return null;
     }
 
@@ -196,7 +146,11 @@ export const logoutUser = async (): Promise<void> => {
   try {
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      credentials: "include",
     });
 
     if (!response.ok) {
@@ -210,7 +164,6 @@ export const logoutUser = async (): Promise<void> => {
     }
 
     console.log("Logout successful.");
-    clearAuthTokens();
   } catch (error) {
     console.error("Error during logout:", error);
     throw new Error(
