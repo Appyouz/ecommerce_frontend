@@ -1,12 +1,43 @@
 import { LoginResponse, User } from "@/types";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-// Define the shape of the registration response
-type RegisterResponse = {
+// Define the shape of the login response when using header authentication
+type LoginResponseWithTokens = {
   user: User;
+  access_token: string;
+  refresh_token: string; // If refresh token is also returned in body
 };
 
+// Helper function to get the current access token from localStorage
+const getAccessToken = (): string | null => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("access_token");
+  }
+  return null;
+};
+
+// Helper function to clear all auth tokens from localStorage
+const clearAuthTokens = () => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token"); // If store refresh token
+  }
+};
+
+// Helper function to get authorization headers
+const getAuthHeaders = () => {
+  const token = getAccessToken();
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
+// Service function to handle user login
 export const login = async (
   username: string,
   password: string,
@@ -35,13 +66,20 @@ export const login = async (
       throw new Error(errorMessage);
     }
 
-    const data: LoginResponse = await response.json();
-
-    // Store access token in localStorage
+    // NEW: Extract tokens from response body and store in localStorage
+    const data: LoginResponseWithTokens = await response.json();
     if (data.access_token) {
-      localStorage.setItem("access_token", data.access_token);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("access_token", data.access_token);
+        // If backend also returns refresh_token in the body, store it:
+        if (data.refresh_token) {
+          localStorage.setItem("refresh_token", data.refresh_token);
+        }
+      }
     } else {
-      console.warn("No access_token returned in login response.");
+      // This case indicates backend didn't return tokens as expected
+      console.error("Login successful but no tokens received:", data);
+      throw new Error("Login successful, but failed to retrieve tokens.");
     }
 
     console.log("Login successful:", data.user);
@@ -54,6 +92,7 @@ export const login = async (
   }
 };
 
+// Service function to handle user registration
 export const registerUser = async (formData: {
   username: string;
   email: string;
@@ -81,6 +120,7 @@ export const registerUser = async (formData: {
       : await response.text();
 
     if (!response.ok) {
+      // Handle Django REST framework error format
       const errorMessage =
         responseData?.username?.join(" ") ||
         responseData?.email?.join(" ") ||
@@ -106,28 +146,23 @@ export const registerUser = async (formData: {
   }
 };
 
+// Service function to fetch the authenticated user's data
 export const fetchAuthenticatedUser = async (): Promise<User | null> => {
   const endpoint = `${API_URL}/dj-rest-auth/user/`;
   console.log(`Attempting to fetch authenticated user via API: ${endpoint}`);
 
-  const token = localStorage.getItem("access_token");
-  if (!token) {
-    console.log("No access token found, user not authenticated.");
-    return null;
-  }
-
   try {
     const response = await fetch(endpoint, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (response.status === 401) {
-      console.log("fetchAuthenticatedUser: User not authenticated (401).");
+      // User is not authenticated. Clear any stale tokens.
+      console.log(
+        "fetchAuthenticatedUser: User not authenticated (401). Clearing tokens.",
+      );
+      clearAuthTokens();
       return null;
     }
 
@@ -142,28 +177,30 @@ export const fetchAuthenticatedUser = async (): Promise<User | null> => {
     }
 
     const userData: User = await response.json();
-    console.log("Authenticated user fetched successfully.", userData);
+    console.log(
+      "fetchAuthenticatedUser: User data fetched successfully.",
+      userData,
+    );
     return userData;
   } catch (error) {
     console.error("Error fetching authenticated user:", error);
+    // If there's a network error, it might mean the user *is* authenticated but the request failed.
+    // For initial auth check, returning null on error is often acceptable.
+    // However, if the error is due to an invalid token, clearing it is a good idea.
+    // Consider inspecting the error type more thoroughly if needed.
     return null;
   }
 };
 
+// Service function to handle user logout
 export const logoutUser = async (): Promise<void> => {
-  console.log("Logging out user...");
+  const endpoint = `${API_URL}/dj-rest-auth/logout/`;
+  console.log(`Attempting to log out via API: ${endpoint}`);
 
-  // Optionally: you can still call /dj-rest-auth/logout/ if you want to tell backend
   try {
-    const endpoint = `${API_URL}/dj-rest-auth/logout/`;
-
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -173,16 +210,15 @@ export const logoutUser = async (): Promise<void> => {
         errorData?.message ||
         `Logout failed (Status: ${response.status})`;
       console.error("Logout API Error response:", errorData);
-      // Do not throw here — we will still clear token on client
-    } else {
-      console.log("Backend logout successful.");
+      throw new Error(errorMessage);
     }
+
+    console.log("Logout successful.");
+    clearAuthTokens();
   } catch (error) {
     console.error("Error during logout:", error);
-    // Proceed to clear token anyway
+    throw new Error(
+      error instanceof Error ? error.message : "Network error during logout",
+    );
   }
-
-  // Always clear access_token locally
-  localStorage.removeItem("access_token");
-  console.log("Access token removed from localStorage. Logout complete.");
 };
