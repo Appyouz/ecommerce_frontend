@@ -1,6 +1,7 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-import { getAuthHeaders, clearAuthTokens } from "./auth";
+import { requestWithAuth } from "./auth";
 import { Product, CartItem, Cart } from "@/types";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Service function to fetch the authenticated user's cart
 export const fetchCart = async (): Promise<Cart | null> => {
@@ -8,18 +9,16 @@ export const fetchCart = async (): Promise<Cart | null> => {
   console.log(`Attempting to fetch user's cart via API: ${endpoint}`);
 
   try {
-    const response = await fetch(endpoint, {
+    // Use requestWithAuth for authenticated requests
+    const response = await requestWithAuth(endpoint, {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: {
+        Accept: "application/json",
+      },
     });
 
-    if (response.status === 401) {
-      console.warn(
-        "fetchCart: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
-      );
-      clearAuthTokens(); // Clear stale tokens from localStorage
-      return null; // Return null to indicate user is not authenticated
-    }
+    // requestWithAuth handles 401s and token refreshing.
+    // If we reach here and response is not ok, it's a different API error.
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       const errorMessage =
@@ -34,6 +33,8 @@ export const fetchCart = async (): Promise<Cart | null> => {
     return cartData;
   } catch (error) {
     console.error("Error in fetchCart service:", error);
+    // The error thrown by requestWithAuth already indicates authentication failure
+    // or a network error. Re-throw it.
     throw new Error(
       error instanceof Error ? error.message : "Network error fetching cart",
     );
@@ -45,31 +46,23 @@ export const updateCartItemQuantity = async (
   newQuantity: number,
 ): Promise<CartItem> => {
   const endpoint = `${API_URL}/api/cart/items/${cartItemId}/`;
-
   console.log(
-    `Attempting to update cart item ${cartItemId} with quantity ${newQuantity} via API: ${endpoint}`,
+    `Attempting to update cart item ${cartItemId} with quantity ${newQuantity} ` +
+      `via API: ${endpoint}`,
   );
 
   try {
-    const response = await fetch(endpoint, {
+    // Use requestWithAuth
+    const response = await requestWithAuth(endpoint, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        ...getAuthHeaders(), // Use spread operator to merge
       },
       body: JSON.stringify({
         quantity: newQuantity,
       }),
     });
-
-    if (response.status === 401) {
-      console.warn(
-        "updateCartItemQuantity: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
-      );
-      clearAuthTokens();
-      throw new Error("Authentication required. Please log in.");
-    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
@@ -82,7 +75,6 @@ export const updateCartItemQuantity = async (
     }
 
     const updatedCartItem: CartItem = await response.json();
-
     return updatedCartItem;
   } catch (error) {
     console.error(
@@ -104,18 +96,13 @@ export const removeCartItem = async (cartItemId: number): Promise<void> => {
   );
 
   try {
-    const response = await fetch(endpoint, {
+    // Use requestWithAuth
+    const response = await requestWithAuth(endpoint, {
       method: "DELETE",
-      headers: getAuthHeaders(),
+      headers: {
+        Accept: "application/json",
+      },
     });
-
-    if (response.status === 401) {
-      console.warn(
-        "removeCartItem: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
-      );
-      clearAuthTokens();
-      throw new Error("Authentication required. Please log in.");
-    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
@@ -150,23 +137,23 @@ type CartItemResponse = {
   updated_at: string;
 };
 
-// Service function to add an item to the authenticated user's cart
 export const addItemToCart = async (
   productId: number,
   quantity: number,
 ): Promise<CartItemResponse> => {
   const endpoint = `${API_URL}/api/cart/items/`;
   console.log(
-    `Attempting to add product ${productId} (quantity ${quantity}) to cart via API: ${endpoint}`,
+    `Attempting to add product ${productId} (quantity ${quantity}) to cart ` +
+      `via API: ${endpoint}`,
   );
 
   try {
-    const response = await fetch(endpoint, {
+    // Use requestWithAuth
+    const response = await requestWithAuth(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        ...getAuthHeaders(),
       },
       body: JSON.stringify({
         product_id: productId,
@@ -174,16 +161,7 @@ export const addItemToCart = async (
       }),
     });
 
-    if (response.status === 401) {
-      console.warn(
-        "addItemToCart: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
-      );
-      clearAuthTokens();
-      throw new Error("Authentication required. Please log in.");
-    }
-
     if (!response.ok) {
-      // If the response is not OK, try to parse error details from the body
       const errorData = await response.json().catch(() => null);
       const errorMessage =
         errorData?.detail ||

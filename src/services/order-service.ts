@@ -1,5 +1,6 @@
-import { getAuthHeaders, clearAuthTokens } from "@/services/auth";
+import { requestWithAuth } from "@/services/auth";
 import { OrderResponse } from "@/types";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export const createOrder = async (): Promise<OrderResponse> => {
@@ -7,23 +8,15 @@ export const createOrder = async (): Promise<OrderResponse> => {
   console.log(`Attempting to create order via API: ${endpoint}`);
 
   try {
-    const response = await fetch(endpoint, {
+    // Use requestWithAuth
+    const response = await requestWithAuth(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        ...getAuthHeaders(),
       },
       body: JSON.stringify({}),
     });
-
-    if (response.status === 401) {
-      console.warn(
-        "createOrder: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
-      );
-      clearAuthTokens();
-      throw new Error("Authentication required. Please log in.");
-    }
 
     if (response.status === 400) {
       const errorData = await response.json().catch(() => null);
@@ -61,18 +54,13 @@ export const fetchOrders = async (): Promise<OrderResponse[]> => {
   console.log(`Attempting to fetch orders via API: ${endpoint}`);
 
   try {
-    const response = await fetch(endpoint, {
+    // Use requestWithAuth
+    const response = await requestWithAuth(endpoint, {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: {
+        Accept: "application/json",
+      },
     });
-
-    if (response.status === 401) {
-      console.warn(
-        "fetchOrders: Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
-      );
-      clearAuthTokens();
-      throw new Error("Authentication required. Please log in.");
-    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);

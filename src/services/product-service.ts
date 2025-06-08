@@ -1,5 +1,5 @@
 import { Product, Category } from "@/types";
-import { getAuthHeaders, clearAuthTokens } from "@/services/auth";
+import { requestWithAuth } from "@/services/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -73,7 +73,6 @@ export const fetchProductById = async (
     }
 
     const productData: Product = await response.json();
-
     return productData;
   } catch (error) {
     console.error(`Error in fetchProductById service for ID ${id}:`, error);
@@ -128,36 +127,30 @@ type CartItemResponse = {
 };
 
 // Service function to add an item to the authenticated user's cart
+// This requires authentication, so use requestWithAuth
 export const addItemToCart = async (
   productId: number,
   quantity: number,
 ): Promise<CartItemResponse> => {
   const endpoint = `${API_URL}/api/cart/items/`;
   console.log(
-    `Attempting to add product ${productId} (quantity ${quantity}) to cart via API: ${endpoint}`,
+    `Attempting to add product ${productId} (quantity ${quantity}) to cart ` +
+      `via API: ${endpoint}`,
   );
 
   try {
-    const response = await fetch(endpoint, {
+    // Use requestWithAuth
+    const response = await requestWithAuth(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        ...getAuthHeaders(),
       },
       body: JSON.stringify({
         product_id: productId,
         quantity: quantity,
       }),
     });
-
-    if (response.status === 401) {
-      console.warn(
-        "addItemToCart (product-service): Received 401 Unauthorized. Token might be expired or invalid. Clearing tokens.",
-      );
-      clearAuthTokens();
-      throw new Error("Authentication required. Please log in.");
-    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
