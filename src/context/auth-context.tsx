@@ -3,7 +3,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { fetchAuthenticatedUser, clearAuthTokens } from "@/services/auth";
 import { User } from "@/types";
-import { useRouter } from 'next/navigation';
 
 // Define the shape of Authentication context state and functions
 type AuthContextType = {
@@ -87,9 +86,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setIsAuthenticated(false);
     console.log("AuthContext: State updated - User logged out. Tokens cleared.");
     // Optionally, redirect to login page here or let the component that calls logoutSuccess handle it.
-    // Example for redirection (requires Next.js useRouter hook if outside a component):
-    const router = useRouter();
-    router.push('/login');
   }
 
   return (
