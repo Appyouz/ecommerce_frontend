@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { addItemToCart, fetchProductById } from "@/services/product-service";
+import Image from "next/image";
 
 import { useParams } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
@@ -123,7 +124,13 @@ export default function ProductDetailPage() {
   return (
     <div style={{ padding: '20px' }}>
       {product.image && (
-        <img src={product.image} alt={product.name} style={{ maxWidth: '300px', height: 'auto', borderRadius: '8px', marginBottom: '20px' }} />
+        <Image
+          src={product.image}
+          alt={product.name}
+          width={300}
+          height={300}
+          style={{ borderRadius: '8px', marginBottom: '20px', height: 'auto' }}
+        />
       )}
       <h1>{product.name}</h1>
       <p style={{ fontSize: '1.5em', color: '#007bff', fontWeight: 'bold', marginBottom: '10px' }}>${parseFloat(product.price).toFixed(2)}</p> {/* Format price */}
