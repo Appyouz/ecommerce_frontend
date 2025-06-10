@@ -141,7 +141,7 @@ export default function LoginForm() {
                 type="text"
                 placeholder="Enter your username"
                 disabled={isSubmitting}
-                className="w-full px-4 py-2 mt-2 border rounded-md text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition ease-in-out duration-150"
+                className="w-full px-4 py-2 border rounded-md text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition ease-in-out duration-150"
               />
               <FieldError message={errors.username} />
             </div>
@@ -155,7 +155,7 @@ export default function LoginForm() {
                 type="password"
                 placeholder="Enter your password"
                 disabled={isSubmitting}
-                className="w-full px-4 py-2 mt-2 border rounded-md text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition ease-in-out duration-150"
+                className="w-full px-4 py-2 border rounded-md text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition ease-in-out duration-150"
               />
               <FieldError message={errors.password} />
             </div>
