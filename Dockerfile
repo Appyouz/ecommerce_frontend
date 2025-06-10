@@ -1,25 +1,42 @@
-# 1. Base Image: Start from an official Node.js image
-FROM node:18-alpine
+# -------- STAGE 1: Build the app --------
+FROM node:18-alpine AS builder
 
-# 2. Set Working Directory inside the container
+# Install pnpm
+RUN npm install -g pnpm@10.10.0
+
+# Set working directory
 WORKDIR /app
 
-# 3. Copy package.json and package-lock.json to install dependencies
-# We copy these first to leverage Docker's build cache.
-# If these files don't change, Docker won't re-run npm install.
-COPY package.json package-lock.json ./
+# Copy package.json and pnpm-lock.yaml first
+COPY package.json pnpm-lock.yaml ./
 
-# 4. Install Node.js dependencies
-# npm ci is preferred for CI/CD and Docker builds as it uses package-lock.json strictly
-RUN npm ci
+# Install dependencies (including devDependencies for build step)
+RUN pnpm install --frozen-lockfile
 
-# 5. Copy the rest of the application code
-# This copies all your Next.js source files into the container.
+# Copy rest of the code
 COPY . .
 
-# 6. Expose the port Next.js development server runs on (default is 3000)
+# Build the Next.js app
+RUN pnpm run build
+
+# -------- STAGE 2: Production image --------
+FROM node:18-alpine AS runner
+
+# Install pnpm
+RUN npm install -g pnpm@10.10.0
+
+# Set working directory
+WORKDIR /app
+
+# Copy only the necessary files from builder stage
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-lock.yaml ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+
+# Expose port
 EXPOSE 3000
 
-# 7. Define the command to run the Next.js application in development mode
-# For production, you'd typically run `npm run build` first, then `npm start`
-CMD ["npm", "run", "dev"]
+# Start the Next.js app in production mode
+CMD ["pnpm", "run", "start"]

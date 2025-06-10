@@ -21,16 +21,21 @@ jobs:
       with:
         node-version: '18' 
 
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: '10.10.0'
+
     - name: Install dependencies # Install frontend dependencies
-      run: npm ci # Use 'npm ci' for clean installs in CI (or 'yarn install --frozen-lockfile')
+      run: pnpm install --frozen-lockfile  # Equivalent to `npm ci`
 
     - name: Run tests # Run frontend tests (e.g., Jest, React Testing Library)
       # Assuming have a 'test' script in your package.json (e.g., "test": "jest")
-      run: npm test
+      run: pnpm test
 
     - name: Build Next.js application # Build the frontend for production readiness
       # This step checks if the app builds without errors.
       #  might need to set environment variables if your Next.js build
       # depends on them (e.g., NEXT_PUBLIC_BACKEND_URL).
       # If so, 'd add 'env:' here just like we did for the backend.
-      run: npm run build
+      run: pnpm run build
