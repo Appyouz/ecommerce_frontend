@@ -189,7 +189,7 @@ export default function LoginForm() {
                 </button>
               </div>
               <p className="mt-6 text-sm text-gray-600">
-                Don't have an account?
+                Don&apos;t have an account?
                 <a href="#" className="ml-1 text-blue-600 hover:underline">Sign up</a>
               </p>
             </div>
