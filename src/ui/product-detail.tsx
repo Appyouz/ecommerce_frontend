@@ -189,42 +189,6 @@ export default function ProductDetailPage() {
           </button>
         </div>
       </div>
-
-      {/* Product description section */}
-      <div className="max-w-6xl mx-auto mt-20 p-4 bg-white border-amber-500 rounded-lg shadow-sm">
-        <h1 className="mb-9 text-2xl md:text-3xl font-bold text-gray-900 mb-4">Descriptions:</h1>
-        <h5 className="text-2xl md:text-3xl font-medium text-gray-900 mb-4">
-          Lenovo LOQ 15 (AMD Ryzen 5 7235HS, RTX 3050 6GB)
-        </h5>
-
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-          <p className="text-yellow-700 italic text-sm">
-            <span className="font-semibold">Note:</span> The image is for reference only. Always read labels/warnings before use.
-          </p>
-        </div>
-
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-3">Key Specifications:</h2>
-          <ul className="list-disc pl-5 space-y-2 text-gray-700">
-            <li><span className="font-medium">Processor:</span> AMD Ryzen 5 7235HS | 3.2GHz (Base) – 4.2GHz (Max) | 4 Cores | 8 Threads</li>
-            <li><span className="font-medium">Display:</span> 15.6″ FHD (1920×1080) IPS | 144Hz | 300Nits Anti-glare</li>
-            <li><span className="font-medium">Memory:</span> 12GB DDR5-4800 RAM | 512GB NVMe SSD</li>
-            <li><span className="font-medium">Graphics:</span> NVIDIA RTX 3050 6GB GDDR6 (95W TGP)</li>
-            <li><span className="font-medium">OS/Battery:</span> Windows 11 Home | 60Wh (6Hrs) | Rapid Charge Pro (80min to 100%)</li>
-            <li><span className="font-medium">Warranty:</span> 1 Year against manufacturing defects</li>
-          </ul>
-        </div>
-
-        <div className="prose prose-sm sm:prose-base max-w-none text-gray-600">
-          <h3 className="text-lg font-semibold text-gray-800">Overview</h3>
-          <p className="mt-2">
-            The Lenovo LOQ 15 packs a powerful AMD Ryzen 5 processor and NVIDIA RTX 3050 GPU,
-            making it ideal for gaming and multitasking. The 144Hz FHD display ensures smooth visuals,
-            while DDR5 RAM and NVMe SSD deliver blazing-fast performance. Pre-loaded with Windows 11
-            and backed by a 1-year warranty, it's built for reliability.
-          </p>
-        </div>
-      </div>
     </div>
   )
 }
