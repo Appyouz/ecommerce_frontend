@@ -122,59 +122,75 @@ export default function ProductDetailPage() {
 
 
   return (
-    <div style={{ padding: '20px' }}>
-      {product.image && (
-        <Image
-          src={product.image}
-          alt={product.name}
-          width={300}
-          height={300}
-          style={{ borderRadius: '8px', marginBottom: '20px', height: 'auto' }}
-        />
-      )}
-      <h1>{product.name}</h1>
-      <p style={{ fontSize: '1.5em', color: '#007bff', fontWeight: 'bold', marginBottom: '10px' }}>${parseFloat(product.price).toFixed(2)}</p> {/* Format price */}
-      {product.description && (
-        <p style={{ marginBottom: '10px' }}>{product.description}</p>
-      )}
-      {product.category && (
-        <p style={{ fontSize: '1em', color: '#555', marginBottom: '5px' }}>Category: {product.category.name}</p>
-      )}
-      <p style={{ fontSize: '1em', color: product.stock > 0 ? 'green' : 'red' }}>Stock: {product.stock}</p>
+    // Main div
+    < div className="max-w-6xl mx-auto p-4 bg-white border border-gray-200 rounded-lg shadow-sm" >
 
-      {isAuthenticated ? (
-        product.stock > 0 ? (
-          <div>
-            <button
-              onClick={handleAddToCart}
-              disabled={addingToCart}
-              style={{
-                padding: '10px 15px',
-                fontSize: '1em',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: addingToCart ? 'not-allowed' : 'pointer',
-                opacity: addingToCart ? 0.6 : 1,
-                marginTop: '15px'
-              }}
-            >
-              {addingToCart ? 'Adding...' : 'Add to Cart'}
-            </button>
-            {addToCartMessage && (
-              <p style={{ marginTop: '10px', color: error ? 'red' : 'green' }}>
-                {addToCartMessage}
-              </p>
-            )}
-          </div>
-        ) : (
-          <p style={{ color: 'red', marginTop: '15px' }}>Out of Stock</p>
-        )
-      ) : (
-        <p style={{ color: '#555', marginTop: '15px' }}>Log in to add to cart.</p>
-      )}
+      {/* Section for images and product-detail*/}
+      <div className="flex gap-6">
+        {/* produt image */}
+        <div className="w-1/2">
+          {product.image && (
+            <Image
+              src={product.image}
+              alt={product.name}
+              width={300}
+              height={300}
+              className="rounded-lg mb-5 h-auto"
+            />
+          )}
+        </div>
+        {/* product name, price,stock,category,add to cart button */}
+        <div className="w-1/2 flex flex-col gap-4">
+          <h1 className="text-xl font-semibold">{product.name}</h1>
+          <p className="text-lg text-gray-700">Price: {product.price}</p>
+          <p className="text-lg text-gray-700">Category: {product.category.id}</p>
 
-    </div>
-  );
+          {/* Stock with dynamic color using Tailwind */}
+          <p className={`text-base ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+            Stock: {product.stock}
+          </p>
+
+          <p className="text-sm text-gray-500">{product.description}</p>
+
+          {/* Conditional Add to Cart Section */}
+          {isAuthenticated ? (
+            product.stock > 0 ? (
+              <div>
+                <button
+                  onClick={handleAddToCart}
+                  disabled={addingToCart}
+                  className={`mt-4 py-2 px-4 text-base rounded border-0
+                  bg-green-600 text-white
+                  ${addingToCart ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-green-700'}
+                `}
+                >
+                  {addingToCart ? 'Adding...' : 'Add to Cart'}
+                </button>
+
+                {addToCartMessage && (
+                  <p className={`mt-2 ${error ? 'text-red-600' : 'text-green-600'}`}>
+                    {addToCartMessage}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-4 text-red-600">Out of Stock</p>
+            )
+          ) : (
+            <p className="mt-4 text-gray-600">Log in to add to cart.</p>
+          )}
+        </div>
+        {/* product image and detail close div */}
+      </div>
+      {/* product description div open  */}
+      <div className="mx-auto "> Product description goes here</div>
+      {/* product description div close  */}
+
+
+
+
+      {/* main div close */}
+    </div >
+
+  )
 }
