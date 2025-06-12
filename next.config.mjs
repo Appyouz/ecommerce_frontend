@@ -3,6 +3,12 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com', // Cloudinary's CDN hostname
+        port: '', // Standard HTTPS port
+        pathname: '/**', // Allow any path from this hostname, as Cloudinary URLs can vary
+      },
+      {
         // Parse the NEXT_PUBLIC_API_URL to get protocol, hostname, and port
         protocol: new URL(
           process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
