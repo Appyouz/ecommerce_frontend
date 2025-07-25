@@ -1,14 +1,9 @@
 import { User } from "@/types";
-
+import { LoginResponseWithTokens } from "@/types";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Define the shape of the login response when using header authentication
 // IMPORTANT: Matches what your backend is currently sending ('access' and 'refresh')
-type LoginResponseWithTokens = {
-  user: User;
-  access: string;
-  refresh: string;
-};
 
 // --- Token Management Functions ---
 const ACCESS_TOKEN_KEY = "access_token"; // Key for localStorage
@@ -146,7 +141,8 @@ export const requestWithAuth = async (
   if (
     response.status === 401 &&
     !url.toString().includes("/dj-rest-auth/login/") &&
-    !url.toString().includes("/dj-rest-auth/registration/")
+    !url.toString().includes("/dj-rest-auth/registration/") &&
+    !url.toString().includes("/register/seller/")
   ) {
     console.warn("Received 401. Attempting token refresh...");
     try {
@@ -227,13 +223,18 @@ export const login = async (
   }
 };
 
-// Service function to handle user registration (simplified, assumes backend sends tokens)
-export const registerUser = async (formData: {
+// Type for the common registration form data (username, email, passwords)
+export type CommonRegistrationFormData = {
   username: string;
   email: string;
   password1: string;
   password2: string;
-}): Promise<User> => {
+};
+
+// Service function to handle user registration (simplified, assumes backend sends tokens)
+export const registerUser = async (
+  formData: CommonRegistrationFormData,
+): Promise<User> => {
   const endpoint = `${API_URL}/dj-rest-auth/registration/`;
   console.log(
     `Attempting to register user: ${formData.username} via API: ${endpoint}`,
@@ -287,6 +288,79 @@ export const registerUser = async (formData: {
       error instanceof Error
         ? error.message
         : "Network error during registration",
+    );
+  }
+};
+
+// Type for seller specific registration data
+export type SellerRegistrationFormData = CommonRegistrationFormData & {
+  store_name: string;
+  business_email: string;
+  phone_number: string;
+  business_address: string;
+  tax_id?: string;
+};
+
+// Service function to handle seller registration
+export const registerSeller = async (
+  formData: SellerRegistrationFormData,
+): Promise<User> => {
+  const endpoint = `${API_URL}/register/seller/`;
+  console.log(
+    `Attempting to register seller: ${formData.username} via API: ${endpoint}`,
+  );
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    const responseData: LoginResponseWithTokens | any = await response
+      .json()
+      .catch(() => null);
+
+    if (!response.ok) {
+      // General error handling, as your custom serializer might return errors differently
+      const errorMessage =
+        responseData?.username?.join(" ") ||
+        responseData?.email?.join(" ") ||
+        responseData?.password1?.join(" ") ||
+        responseData?.password2?.join(" ") ||
+        responseData?.store_name?.join(" ") ||
+        responseData?.business_email?.join(" ") ||
+        responseData?.phone_number?.join(" ") ||
+        responseData?.business_address?.join(" ") ||
+        responseData?.tax_id?.join(" ") ||
+        responseData?.non_field_errors?.join(" ") ||
+        responseData?.detail ||
+        "Seller registration failed";
+
+      throw new Error(errorMessage);
+    }
+
+    if (responseData && responseData.access && responseData.refresh) {
+      setAuthTokens(responseData.access, responseData.refresh);
+    } else {
+      console.warn(
+        "Seller registration response did not contain new access/refresh tokens. User might need to log in separately after registration.",
+      );
+    }
+
+    const userData: User = responseData.user || responseData;
+
+    console.log("Seller registration successful:", userData);
+    return userData;
+  } catch (error) {
+    console.error("Seller registration error:", error);
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Network error during seller registration",
     );
   }
 };
