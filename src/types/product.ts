@@ -1,14 +1,22 @@
-export type Product = {
+export interface Category {
   id: number;
   name: string;
-  description: string | null;
+  description?: string;
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  description: string;
   price: string;
   stock: number;
-  category: {
+  category: Category | null;
+  seller?: {
     id: number;
-    name: string;
-  } | null;
-  image: string | null;
+    username: string;
+    store_name: string;
+  };
+  image?: string;
   created_at: string;
   updated_at: string;
-};
+}
