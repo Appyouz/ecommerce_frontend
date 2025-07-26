@@ -1,9 +1,3 @@
-export interface Category {
-  id: number;
-  name: string;
-  description?: string;
-}
-
 export interface Product {
   id: number;
   name: string;
@@ -20,3 +14,4 @@ export interface Product {
   created_at: string;
   updated_at: string;
 }
+
