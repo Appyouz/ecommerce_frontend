@@ -294,11 +294,13 @@ export const registerUser = async (
 
 // Type for seller specific registration data
 export type SellerRegistrationFormData = CommonRegistrationFormData & {
-  store_name: string;
-  business_email: string;
-  phone_number: string;
-  business_address: string;
-  tax_id?: string;
+  seller_profile: {
+    store_name: string;
+    business_email: string;
+    phone_number: string;
+    business_address: string;
+    tax_id?: string;
+  };
 };
 
 // Service function to handle seller registration
