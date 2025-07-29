@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { useRouter } from 'next/navigation'; // Import useRouter for redirection
+import { useRouter } from 'next/navigation';
 import {
   registerUser,
   registerSeller,
@@ -138,10 +138,19 @@ export default function RegisterForm() {
 
     // Seller-specific Validation
     if (userType === 'seller') {
-      if (!formData.store_name?.trim()) newErrors.store_name = 'Store name is required.';
-      if (!formData.business_email?.trim()) newErrors.business_email = 'Business email is required.';
-      if (!formData.phone_number?.trim()) newErrors.phone_number = 'Phone number is required.';
-      if (!formData.business_address?.trim()) newErrors.business_address = 'Business address is required.';
+      // Access properties directly from formData.seller_profile
+      if (!formData.seller_profile.store_name?.trim()) {
+        newErrors.store_name = 'Store name is required.';
+      }
+      if (!formData.seller_profile.business_email?.trim()) {
+        newErrors.business_email = 'Business email is required.';
+      }
+      if (!formData.seller_profile.phone_number?.trim()) {
+        newErrors.phone_number = 'Phone number is required.';
+      }
+      if (!formData.seller_profile.business_address?.trim()) {
+        newErrors.business_address = 'Business address is required.';
+      }
       // tax_id is optional, so no validation here unless it becomes required
     }
 
@@ -158,17 +167,8 @@ export default function RegisterForm() {
         registeredUser = await registerUser(formData as CommonRegistrationFormData);
       } else {
         // === CRITICAL CHANGE FOR SELLER REGISTRATION ===
-        const {
-          username,
-          email,
-          password1,
-          password2,
-          store_name,
-          business_email,
-          phone_number,
-          business_address,
-          tax_id
-        } = formData;
+        // No need to destructure seller-specific fields at the top level from formData
+        // Instead,  access them directly from formData.seller_profile
 
         // Construct the payload to match the backend's nested serializer expectation
         const sellerPayload = {
@@ -177,14 +177,14 @@ export default function RegisterForm() {
           password1,
           password2,
           seller_profile: { // This is the nested object
-            store_name: store_name || '', // Ensure strings, even if empty/optional
-            business_email: business_email || '',
-            phone_number: phone_number || '',
-            business_address: business_address || '',
-            tax_id: tax_id || '' // tax_id is optional, ensure it's sent if present
+            store_name: formData.seller_profile.store_name, // Access from nested object
+            business_email: formData.seller_profile.business_email, // Access from nested object
+            phone_number: formData.seller_profile.phone_number, // Access from nested object
+            business_address: formData.seller_profile.business_address, // Access from nested object
+            tax_id: formData.seller_profile.tax_id || '' // tax_id is optional, ensure it's sent if present
           }
         };
-        // Cast formData to SellerRegistrationFormData as we've validated all required fields
+        // Cast sellerPayload to SellerRegistrationFormData for type safety
         registeredUser = await registerSeller(sellerPayload as SellerRegistrationFormData);
       }
       setIsSuccess(true);
@@ -193,7 +193,7 @@ export default function RegisterForm() {
 
       // Redirect after a short delay to show success message
       setTimeout(() => {
-        router.push('/dashboard'); // Or wherever you want to redirect after registration
+        router.push('/dashboard');
       }, 2000);
 
     } catch (error) {
@@ -324,7 +324,7 @@ export default function RegisterForm() {
                   <label htmlFor="store_name" className="block font-semibold text-gray-700">Store Name</label>
                   <input
                     name="store_name"
-                    value={formData.store_name}
+                    value={formData.seller_profile.store_name} // Access from nested object
                     onChange={handleChange}
                     type="text"
                     id="store_name"
@@ -337,7 +337,7 @@ export default function RegisterForm() {
                   <label htmlFor="business_email" className="block font-semibold text-gray-700">Business Email</label>
                   <input
                     name="business_email"
-                    value={formData.business_email}
+                    value={formData.seller_profile.business_email} // Access from nested object
                     onChange={handleChange}
                     type="email"
                     id="business_email"
@@ -350,7 +350,7 @@ export default function RegisterForm() {
                   <label htmlFor="phone_number" className="block font-semibold text-gray-700">Phone Number</label>
                   <input
                     name="phone_number"
-                    value={formData.phone_number}
+                    value={formData.seller_profile.phone_number} // Access from nested object
                     onChange={handleChange}
                     type="tel"
                     id="phone_number"
@@ -363,7 +363,7 @@ export default function RegisterForm() {
                   <label htmlFor="business_address" className="block font-semibold text-gray-700">Business Address</label>
                   <input
                     name="business_address"
-                    value={formData.business_address}
+                    value={formData.seller_profile.business_address} // Access from nested object
                     onChange={handleChange}
                     type="text"
                     id="business_address"
@@ -376,7 +376,7 @@ export default function RegisterForm() {
                   <label htmlFor="tax_id" className="block font-semibold text-gray-700">Tax ID (Optional)</label>
                   <input
                     name="tax_id"
-                    value={formData.tax_id}
+                    value={formData.seller_profile.tax_id} // Access from nested object
                     onChange={handleChange}
                     type="text"
                     id="tax_id"
@@ -393,8 +393,8 @@ export default function RegisterForm() {
               type="submit"
               disabled={isSubmitting}
               className="w-full px-4 py-2 tracking-wide text-white transition-colors duration-200 transform
-                         bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:bg-blue-700
-                         disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-8"
+                          bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:bg-blue-700
+                          disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-8"
             >
               {isSubmitting ? 'Registering...' : 'Register'}
             </button>
