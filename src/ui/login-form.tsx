@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { login, fetchAuthenticatedUser } from "@/services/auth";
+import Link from 'next/link';
 
 // Icons
 import { FcGoogle } from "react-icons/fc";
@@ -188,17 +189,18 @@ export default function LoginForm() {
                   <FaGithub className="w-5 h-5 mr-2"></FaGithub>
                 </button>
               </div>
-              <p className="mt-6 text-sm text-gray-600">
-                Don&apos;t have an account?
-                <a href="#" className="ml-1 text-blue-600 hover:underline">Sign up</a>
-              </p>
             </div>
           </form>
         )}
+        <p className="mt-6 text-sm text-gray-600">
+          Don&apos;t have an account?
+          <Link href="/register" className="ml-1 text-blue-600 hover:underline">
+            Sign up
+          </Link>
 
-
+        </p>
       </div>
-    </div>
+    </div >
   );
 
 }
