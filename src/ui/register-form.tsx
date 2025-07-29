@@ -66,29 +66,56 @@ export default function RegisterForm() {
   // Handle change for all input fields
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: '' })); // Clear specific field error
-    setSubmitError(null); // Clear general submission error on input change
-    setIsSuccess(false); // Reset success state on input change
+    // Check if the changed field belongs to seller_profile
+    if (['store_name', 'business_email', 'phone_number', 'business_address', 'tax_id'].includes(name)) {
+      setFormData(prev => ({
+        ...prev,
+        seller_profile: { // Update the nested seller_profile object
+          ...prev.seller_profile, // Keep existing seller_profile values
+          [name]: value // Update the specific field within seller_profile
+        } as CombinedFormData['seller_profile'] // Cast for type safety as prev.seller_profile might be undefined
+      }));
+      setErrors(prev => ({ // Clear error for the nested field
+        ...prev,
+        [name]: ''
+      }));
+    } else {
+      // For common fields (username, email, passwords)
+      setFormData(prev => ({ ...prev, [name]: value }));
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+
+    setSubmitError(null);
+    setIsSuccess(false);
   }
+
 
   // Handle change for user type radio buttons
   function handleUserTypeChange(e: React.ChangeEvent<HTMLInputElement>) {
     setUserType(e.target.value as 'buyer' | 'seller');
-    // Clear any seller-specific errors if switching back to buyer
     if (e.target.value === 'buyer') {
       setErrors(prev => {
-        const { store_name, business_email, phone_number, business_address, tax_id, ...rest } = prev;
-        return rest;
+        // It's better to clear specific errors related to seller_profile
+        // rather than destructuring top-level non-existent properties.
+        const newErrors = { ...prev };
+        delete newErrors.store_name;
+        delete newErrors.business_email;
+        delete newErrors.phone_number;
+        delete newErrors.business_address;
+        delete newErrors.tax_id;
+        return newErrors;
       });
-      // Optionally clear seller specific data when switching back to buyer
+
+      // Clear seller specific data by resetting seller_profile to its initial empty state
       setFormData(prev => ({
         ...prev,
-        store_name: '',
-        business_email: '',
-        phone_number: '',
-        business_address: '',
-        tax_id: ''
+        seller_profile: {
+          store_name: '',
+          business_email: '',
+          phone_number: '',
+          business_address: '',
+          tax_id: ''
+        }
       }));
     }
   }
