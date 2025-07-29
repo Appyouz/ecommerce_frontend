@@ -6,21 +6,7 @@ import Image from "next/image";
 
 import { useParams } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
-
-type Product = {
-  id: number;
-  name: string;
-  description: string | null;
-  price: string;
-  stock: number;
-  category: {
-    id: number;
-    name: string;
-  } | null;
-  image: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import { Product } from "@/types";
 
 
 export default function ProductDetailPage() {
