@@ -49,11 +49,13 @@ export default function RegisterForm() {
     email: '',
     password1: '',
     password2: '',
-    store_name: '',
-    business_email: '',
-    phone_number: '',
-    business_address: '',
-    tax_id: ''
+    seller_profile: {
+      store_name: '',
+      business_email: '',
+      phone_number: '',
+      business_address: '',
+      tax_id: ''
+    },
   });
 
   const [errors, setErrors] = useState<CombinedFormErrors>({});
