@@ -46,6 +46,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setUser(authenticatedUser);
           setIsAuthenticated(true);
           console.log("AuthContext: User authenticated on app load.");
+          /*temporary debugging*/
+          console.log("AuthContext: User data on load:", authenticatedUser);
         } else {
           // If fetchAuthenticatedUser returns null (e.g., token expired or no token)
           setUser(null);
@@ -76,6 +78,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setIsAuthenticated(true);
     setIsLoading(false); // Authentication check is implicitly done by logging in
     console.log("AuthContext: State updated - User logged in.");
+    console.log("AuthContext: User data on login:", userData);
   }
 
   // Function called when the user explicitly logs out OR when an authentication failure
