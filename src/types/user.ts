@@ -13,6 +13,6 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
-  role: "Buyer" | "Seller";
+  role: "BUYER" | "SELLER";
   seller_profile?: SellerProfile;
 }
