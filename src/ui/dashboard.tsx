@@ -1,4 +1,3 @@
-// src/ui/dashboard.tsx
 'use client';
 
 import { useAuth } from '@/context/auth-context';
@@ -21,7 +20,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchSellerData = async () => {
-      if (user?.role === 'Seller') {
+      if (user?.role === 'SELLER') {
         try {
           const response = await requestWithAuth('http://localhost:8000/seller/dashboard/');
           const data = await response.json();
@@ -34,7 +33,7 @@ export default function Dashboard() {
       }
     };
 
-    if (isAuthenticated && user?.role === 'Seller') {
+    if (isAuthenticated && user?.role === 'SELLER') {
       fetchSellerData();
     } else {
       setLoading(false);
@@ -49,8 +48,8 @@ export default function Dashboard() {
     return <div className="p-4">Redirecting to login...</div>;
   }
 
-  // Seller Dashboard
-  if (user?.role === 'Seller') {
+  if (user?.role === 'SELLER') {
+    // Seller Dashboard
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6">
