@@ -38,7 +38,7 @@ export default function LoginForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Get state and the loginSuccess function
-  const { isAuthenticated, isLoading, loginSuccess } = useAuth();
+  const { user, isAuthenticated, isLoading, loginSuccess } = useAuth();
 
   const router = useRouter();
 
@@ -105,12 +105,12 @@ export default function LoginForm() {
   // useEffect to redirect if user is already authenticated when landing on /login
   useEffect(() => {
     // Only redirect if the global auth check is finished AND the user is authenticated
-    if (!isLoading && isAuthenticated) {
+    if (!isLoading && isAuthenticated && user) {
       console.log("/login useEffect: User authenticated (via global state), redirecting to dashboard.");
       router.push('/dashboard');
     }
     // Effect depends on global auth state and router
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, user, router]);
 
   // Render logic based on global auth state (isLoading, isAuthenticated)
   return (
