@@ -1,5 +1,4 @@
 'use client'
-
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { logoutUser } from "@/services/auth"
@@ -17,6 +16,11 @@ export default function Header() {
       // Call the backend logout service
       await logoutUser();
       console.log("Header handleLogout: Logout successful on backend.");
+    } catch (error) {
+      console.error("Header: Error during logout process:", error);
+    } finally {
+      // This block will always run, whether the try or catch block finished.
+      // This ensures we always update the state and redirect.
 
       // Call context function to update global state
       logoutSuccess()
@@ -24,8 +28,7 @@ export default function Header() {
 
       // Explicitly redirect to login page
       router.push('/login')
-    } catch (error) {
-      console.error("Header: Error during logout process:", error);
+
     }
   }
 
@@ -46,9 +49,10 @@ export default function Header() {
             // If authenticated, show welcome message and Logout button
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <span style={{ marginRight: '10px' }}>Welcome, {user?.username}!</span>
-              <button type="button" onClick={handleLogout}>
+              <button type="button" onClick={handleLogout} className="ml-1 text-blue-600 hover:underline">
                 Logout
               </button>
+
             </div>
           ) : (
             // If not authenticated, show Login and Signup links
