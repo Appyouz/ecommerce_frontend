@@ -85,6 +85,10 @@ export default function Dashboard() {
                 <div className="space-y-4">
                   {products.map(product => (
                     <div key={product.id} className="border-b pb-4">
+                      {product.image && (
+                        <img src={product.image} alt={product.image} className="w-24 h-24 object-cover mb-2" />
+
+                      )}
                       <h3 className="font-medium">{product.name}</h3>
                       <p>Price: ${product.price}</p>
                       <p>Stock: {product.stock}</p>
