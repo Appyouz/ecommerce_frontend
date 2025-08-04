@@ -24,10 +24,13 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Retrieve the API URL from the environment variable
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await requestWithAuth('http://localhost:8000/api/categories/');
+        const response = await requestWithAuth(`${apiUrl}/api/categories/`);
         if (!response.ok) {
           throw new Error('Failed to fetch categories');
         }
@@ -61,14 +64,10 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
     }
 
     try {
-      // The requestWithAuth function needs to be told not to use JSON
       const response = await requestWithAuth(
-        'http://localhost:8000/api/products/',
+        `${apiUrl}/api/products/`,
         {
           method: 'POST',
-          // Do NOT set the 'Content-Type' header here.
-          // The browser will automatically set it to 'multipart/form-data'
-          // and include the correct boundary string for file uploads.
           body: formData,
         }
       );
@@ -79,9 +78,7 @@ export default function ProductForm({ onProductCreated }: ProductFormProps) {
         throw new Error(errorMessage);
       }
 
-      // If the submission is successful, call the prop function to update the dashboard
       onProductCreated();
-      // Reset the form fields
       setName('');
       setDescription('');
       setPrice('');
