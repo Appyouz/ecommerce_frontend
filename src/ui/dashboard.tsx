@@ -14,11 +14,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   // Function to fetch products from the server
   const fetchSellerData = async () => {
     if (user?.role === 'SELLER') {
       try {
-        const response = await requestWithAuth('http://localhost:8000/api/products/');
+        const response = await requestWithAuth(`${apiUrl}/api/products/`);
         const data = await response.json();
         setProducts(data || []);
       } catch (error) {
