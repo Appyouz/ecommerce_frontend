@@ -4,61 +4,73 @@ import { useRouter } from "next/navigation"
 import { logoutUser } from "@/services/auth"
 import { useAuth } from "@/context/auth-context"
 
-// Header component to display global authentication status and actions
 export default function Header() {
-  // Consume global auth state and logout function from context
   const { user, isAuthenticated, isLoading, logoutSuccess } = useAuth();
-
   const router = useRouter();
 
   async function handleLogout() {
     try {
-      // Call the backend logout service
       await logoutUser();
       console.log("Header handleLogout: Logout successful on backend.");
     } catch (error) {
       console.error("Header: Error during logout process:", error);
     } finally {
-      // This block will always run, whether the try or catch block finished.
-      // This ensures we always update the state and redirect.
-
-      // Call context function to update global state
-      logoutSuccess()
+      logoutSuccess();
       console.log("Header handleLogout: Called logoutSuccess.");
-
-      // Explicitly redirect to login page
-      router.push('/login')
-
+      router.push('/login');
     }
   }
 
-  // Render logic
   return (
-    <header style={{ padding: '10px 20px', borderBottom: '1px solid #ccc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <div>
-        <Link href="/">My App</Link>
+    <header className="bg-gray-800 text-white p-4 shadow-md flex justify-between items-center">
+      <div className="flex-shrink-0">
+        <Link href="/" className="text-2xl font-bold tracking-tight text-white hover:text-gray-300 transition-colors duration-200 ease-in-out">
+          My App
+        </Link>
       </div>
 
-      {/* Navigation / Auth Status */}
-      <nav>
+      <nav className="flex items-center space-x-6">
         {isLoading ? (
-          // Show loading state while initial check is in progress
-          <span>Loading...</span>
+          <span className="text-gray-400">Loading...</span>
         ) : (
           isAuthenticated ? (
-            // If authenticated, show welcome message and Logout button
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ marginRight: '10px' }}>Welcome, {user?.username}!</span>
-              <button type="button" onClick={handleLogout} className="ml-1 text-blue-600 hover:underline">
+            <>
+              <Link href="/products" className="hover:text-gray-300 transition-colors duration-200 ease-in-out">
+                Products
+              </Link>
+              <Link href="/cart" className="hover:text-gray-300 transition-colors duration-200 ease-in-out">
+                Cart
+              </Link>
+              <Link href="/orders" className="hover:text-gray-300 transition-colors duration-200 ease-in-out">
+                Orders
+              </Link>
+              <Link href="/dashboard" className="hover:text-gray-300 transition-colors duration-200 ease-in-out">
+                Dashboard
+              </Link>
+              <span className="text-gray-400">Welcome, {user?.username}!</span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-md transition-colors duration-200 ease-in-out"
+              >
                 Logout
               </button>
-
-            </div>
+            </>
           ) : (
-            // If not authenticated, show Login and Signup links
-            <div>
-              <Link href="/login" style={{ marginRight: '10px' }}>Login</Link> {/* Link to login page */}
-            </div>
+            <>
+              <Link href="/products" className="hover:text-gray-300 transition-colors duration-200 ease-in-out">
+                Products
+              </Link>
+              <Link href="/cart" className="hover:text-gray-300 transition-colors duration-200 ease-in-out">
+                Cart
+              </Link>
+              <Link href="/login" className="hover:text-gray-300 transition-colors duration-200 ease-in-out">
+                Login
+              </Link>
+              <Link href="/register" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-md transition-colors duration-200 ease-in-out">
+                Register
+              </Link>
+            </>
           )
         )}
       </nav>
